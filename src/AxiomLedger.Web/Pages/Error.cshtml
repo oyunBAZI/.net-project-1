@@ -1,0 +1,29 @@
+@page
+@model AxiomLedger.Web.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Something went wrong";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Error · Axiom Ledger</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+</head>
+<body class="auth-body">
+<main class="auth-main" style="min-height:100vh">
+    <div class="auth-card" style="text-align:center">
+        <div style="font-size:64px;font-weight:800;color:#d7b56d;letter-spacing:-.04em">500</div>
+        <h1 style="color:#fff;margin:8px 0">Something went wrong</h1>
+        <p style="color:#9fb3a9">The error has been logged. If it keeps happening, check the server log or
+            contact your administrator.</p>
+        @if (!string.IsNullOrEmpty(Model.RequestId))
+        {
+            <p style="color:#6f877c;font-size:12px">Reference: @Model.RequestId</p>
+        }
+        <a class="btn btn-primary mt-2" href="/">Return to dashboard</a>
+    </div>
+</main>
+</body>
+</html>

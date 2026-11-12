@@ -1,0 +1,162 @@
+@page "{id:guid}"
+@model AxiomLedger.Web.Pages.Parties.ViewModel
+@{
+    ViewData["Title"] = Model.Party.Name;
+    var party = Model.Party;
+    var statement = Model.Statement;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb">
+            <a asp-page="/Parties/Index" asp-route-type="@(party.IsVendor ? PartyType.Vendor : PartyType.Customer)">
+                @(party.IsVendor ? "Vendors" : "Customers")</a> / @party.Code
+        </div>
+        <h1>@party.Name</h1>
+        <div class="sub">@party.Type · @party.Email · terms @party.PaymentTermsDays days</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.ManageParties))
+        {
+            <a class="btn btn-ghost" asp-page="/Parties/Edit" asp-route-id="@party.Id">Edit</a>
+        }
+        @if (party.IsCustomer && Model.Can(Permission.ManageSales))
+        {
+            <a class="btn btn-ghost" asp-page="/Invoices/Edit">New invoice</a>
+        }
+        @if (party.IsCustomer && Model.Can(Permission.ManagePayments))
+        {
+            <a class="btn btn-primary" asp-page="/Payments/New" asp-route-partyId="@party.Id" asp-route-direction="Receipt">Record receipt</a>
+        }
+        @if (party.IsVendor && Model.Can(Permission.ManagePurchases))
+        {
+            <a class="btn btn-ghost" asp-page="/Bills/Edit">New bill</a>
+        }
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Receivable</div>
+        <div class="stat-value">@Ui.Money(Model.Receivable, party.CurrencyCode)</div>
+    </div>
+    <div class="stat is-warn">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Payable</div>
+        <div class="stat-value">@Ui.Money(Model.Payable, party.CurrencyCode)</div>
+    </div>
+    <div class="stat is-blue">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Unapplied credits</div>
+        <div class="stat-value">@Ui.Money(Model.UnappliedCredits, party.CurrencyCode)</div>
+    </div>
+    <div class="stat">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Credit limit</div>
+        <div class="stat-value">@(party.CreditLimit.HasValue ? Ui.Money(party.CreditLimit.Value, party.CurrencyCode) : "—")</div>
+    </div>
+</div>
+
+<div class="split">
+    <div class="card">
+        <div class="card-head">
+            <h2>Statement of account</h2>
+            <span class="muted">@Ui.Date(statement.From) – @Ui.Date(statement.To)</span>
+        </div>
+        <div class="card-body tight">
+            <div class="table-wrap">
+                <table class="table report-table">
+                    <thead>
+                    <tr><th>Date</th><th>Type</th><th>Document</th><th>Reference</th><th class="num">Debit</th>
+                        <th class="num">Credit</th><th class="num">Balance</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr class="is-subtotal">
+                        <td colspan="6">Opening balance</td>
+                        <td class="num">@Ui.Money(statement.OpeningBalance, party.CurrencyCode)</td>
+                    </tr>
+                    @if (statement.Rows.Count == 0)
+                    {
+                        <tr><td colspan="7" class="muted">No activity in this period.</td></tr>
+                    }
+                    @foreach (var row in statement.Rows)
+                    {
+                        <tr>
+                            <td class="nowrap">@Ui.Date(row.Date)</td>
+                            <td>@row.DocumentType</td>
+                            <td><strong>@row.Number</strong></td>
+                            <td class="muted">@(row.Reference ?? "—")</td>
+                            <td class="num">@(row.Debit != 0 ? Ui.Money(row.Debit, party.CurrencyCode) : "")</td>
+                            <td class="num">@(row.Credit != 0 ? Ui.Money(row.Credit, party.CurrencyCode) : "")</td>
+                            <td class="num">@Ui.Money(row.Balance, party.CurrencyCode)</td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="4">Closing balance</td>
+                        <td class="num">@Ui.Money(statement.TotalInvoiced, party.CurrencyCode)</td>
+                        <td class="num">@Ui.Money(statement.TotalPaid, party.CurrencyCode)</td>
+                        <td class="num">@Ui.Money(statement.ClosingBalance, party.CurrencyCode)</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Contact</h2></div>
+            <div class="card-body">
+                <dl class="kv">
+                    <dt>Code</dt><dd>@party.Code</dd>
+                    <dt>Contact</dt><dd>@(party.ContactName ?? "—")</dd>
+                    <dt>Email</dt><dd>@(party.Email ?? "—")</dd>
+                    <dt>Phone</dt><dd>@(party.Phone ?? "—")</dd>
+                    <dt>Tax ID</dt><dd>@(party.TaxId ?? "—")</dd>
+                    <dt>Currency</dt><dd>@party.CurrencyCode</dd>
+                    <dt>Terms</dt><dd>@party.PaymentTermsDays days</dd>
+                </dl>
+                <hr/>
+                <div class="eyebrow">Billing address</div>
+                <p class="muted" style="white-space:pre-line">
+                    @party.AddressLine1
+                    @party.AddressLine2
+                    @party.City @party.Region @party.PostalCode
+                    @party.CountryCode
+                </p>
+            </div>
+        </div>
+
+        <div class="card side-card">
+            <div class="card-head"><h2>Open @(party.IsVendor ? "bills" : "invoices")</h2></div>
+            <div class="card-body">
+                @if (Model.OpenDocuments.Count == 0)
+                {
+                    <p class="muted" style="margin:0">No open documents.</p>
+                }
+                else
+                {
+                    <div class="list">
+                        @foreach (var document in Model.OpenDocuments)
+                        {
+                            <div class="list-item">
+                                <div class="li-main">
+                                    <strong>@document.Number</strong>
+                                    <small>Due @Ui.Date(document.DueDate)
+                                        @if (document.DaysOverdue > 0)
+                                        {
+                                            <span class="badge badge-danger" style="margin-left:4px">@document.DaysOverdue days</span>
+                                        }
+                                    </small>
+                                </div>
+                                <div class="li-amount">@Ui.Money(document.Balance, document.CurrencyCode)</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

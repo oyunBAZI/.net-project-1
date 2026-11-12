@@ -1,0 +1,211 @@
+@page
+@model AxiomLedger.Web.Pages.Settings.IndexModel
+@{
+    ViewData["Title"] = "Settings";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Administration</div>
+        <h1>Company settings</h1>
+        <div class="sub">Entity details, accounting controls and books lock.</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Settings/Periods">Periods &amp; year-end</a>
+        <a class="btn btn-ghost" asp-page="/Settings/Taxes">Tax codes</a>
+        <a class="btn btn-ghost" asp-page="/Settings/Currencies">Currencies</a>
+    </div>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<div class="split">
+    <div class="stack">
+        <div class="card">
+            <div class="card-head"><h2>Company details</h2></div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Company">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label asp-for="Company.Name">Name</label>
+                            <input class="input" asp-for="Company.Name" required/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.LegalName">Legal name</label>
+                            <input class="input" asp-for="Company.LegalName"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.TaxId">Tax ID</label>
+                            <input class="input" asp-for="Company.TaxId"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.RegistrationNumber">Registration number</label>
+                            <input class="input" asp-for="Company.RegistrationNumber"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.Email">Email</label>
+                            <input class="input" asp-for="Company.Email" type="email"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.Phone">Phone</label>
+                            <input class="input" asp-for="Company.Phone"/>
+                        </div>
+                        <div class="field span-2">
+                            <label asp-for="Company.AddressLine1">Address</label>
+                            <input class="input" asp-for="Company.AddressLine1"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.AddressLine2">Address line 2</label>
+                            <input class="input" asp-for="Company.AddressLine2"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.City">City</label>
+                            <input class="input" asp-for="Company.City"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.Region">Region</label>
+                            <input class="input" asp-for="Company.Region"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.PostalCode">Postal code</label>
+                            <input class="input" asp-for="Company.PostalCode"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Company.CountryCode">Country code</label>
+                            <input class="input" asp-for="Company.CountryCode" maxlength="2"/>
+                        </div>
+                        <div class="field">
+                            <label>Base currency</label>
+                            <input class="input" value="@Model.BaseCurrency" readonly/>
+                            <span class="hint">The base currency is fixed once the ledger has activity.</span>
+                        </div>
+                        <div class="field">
+                            <label>Fiscal year start</label>
+                            <input class="input" value="@Model.FiscalStartLabel" readonly/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Save company details</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h2>Accounting controls</h2></div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Preferences">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="check">
+                                <input asp-for="Preferences.RequireJournalApproval"/>
+                                <span>Require approval for manual journals</span>
+                            </label>
+                            <span class="hint">System documents (invoices, bills, payments) always post directly.</span>
+                        </div>
+                        <div class="field">
+                            <label class="check">
+                                <input asp-for="Preferences.RequireSegregationOfDuties"/>
+                                <span>Preparer cannot approve their own journal</span>
+                            </label>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.ApprovalThreshold">Approval threshold</label>
+                            <input class="input num" asp-for="Preferences.ApprovalThreshold" inputmode="decimal"/>
+                            <span class="hint">Journals at or above this total require approval.</span>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.DefaultInvoiceDueDays">Default payment terms (days)</label>
+                            <input class="input num" asp-for="Preferences.DefaultInvoiceDueDays" type="number" min="0" max="365"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.InvoicePrefix">Invoice prefix</label>
+                            <input class="input" asp-for="Preferences.InvoicePrefix"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.BillPrefix">Bill prefix</label>
+                            <input class="input" asp-for="Preferences.BillPrefix"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.JournalPrefix">Journal prefix</label>
+                            <input class="input" asp-for="Preferences.JournalPrefix"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.PaymentPrefix">Payment prefix</label>
+                            <input class="input" asp-for="Preferences.PaymentPrefix"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.DefaultSalesTaxCodeId">Default sales tax</label>
+                            <select class="select" asp-for="Preferences.DefaultSalesTaxCodeId">
+                                <option value="">None</option>
+                                @foreach (var tax in Model.TaxCodes)
+                                {
+                                    <option value="@tax.Id">@tax.Code — @tax.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Preferences.DefaultPurchaseTaxCodeId">Default purchase tax</label>
+                            <select class="select" asp-for="Preferences.DefaultPurchaseTaxCodeId">
+                                <option value="">None</option>
+                                @foreach (var tax in Model.TaxCodes)
+                                {
+                                    <option value="@tax.Id">@tax.Code — @tax.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Save preferences</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Books lock</h2></div>
+            <div class="card-body">
+                @if (Model.LockDate is { } lockDate)
+                {
+                    <div class="alert alert-warn">No entries may be dated on or before
+                        <strong>@Ui.Date(lockDate)</strong>.</div>
+                }
+                else
+                {
+                    <p class="muted">The books are currently open.</p>
+                }
+                <form method="post" asp-page-handler="Lock">
+                    <div class="field">
+                        <label>Lock through</label>
+                        <input class="input" type="date" name="lockDate" value="@Ui.DateInput(Model.LockDate)"/>
+                        <span class="hint">Use monthly period close for softer controls.</span>
+                    </div>
+                    <div class="form-actions" style="margin-top:12px">
+                        <button class="btn btn-primary btn-sm" type="submit">Apply lock date</button>
+                        @if (Model.LockDate is not null)
+                        {
+                            <button class="btn btn-ghost btn-sm" type="submit" name="unlock" value="true"
+                                    data-confirm="Remove the lock date?">Remove lock</button>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card side-card">
+            <div class="card-head"><h2>Company summary</h2></div>
+            <div class="card-body">
+                <dl class="kv">
+                    <dt>Base currency</dt><dd>@Model.BaseCurrency</dd>
+                    <dt>Fiscal year</dt><dd>Starts @Model.FiscalStartLabel</dd>
+                    <dt>Users</dt><dd>@Model.MemberCount</dd>
+                    <dt>Accounts</dt><dd>@Model.AccountCount</dd>
+                    <dt>Journals</dt><dd>@Model.JournalCount</dd>
+                </dl>
+                <hr/>
+                <a class="btn btn-ghost btn-sm" asp-page="/Companies/New">Create another company</a>
+            </div>
+        </div>
+    </div>
+</div>

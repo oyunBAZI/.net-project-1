@@ -1,0 +1,97 @@
+@page
+@model AxiomLedger.Web.Pages.Settings.CurrenciesModel
+@{
+    ViewData["Title"] = "Currencies";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Settings/Index">Settings</a> / Currencies</div>
+        <h1>Currencies &amp; rates</h1>
+        <div class="sub">Rates express how many units of @Model.BaseCurrency one unit of the foreign currency buys.</div>
+    </div>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<div class="split">
+    <div class="card">
+        <div class="card-head"><h2>Recent exchange rates</h2></div>
+        <div class="card-body tight">
+            @if (Model.Rates.Count == 0)
+            {
+                <div class="empty" style="padding:30px">
+                    <p>No rates yet. Add one to invoice in a foreign currency.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                        <tr><th>Date</th><th>Currency</th><th class="num">Rate</th><th>Source</th></tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var rate in Model.Rates)
+                        {
+                            <tr>
+                                <td class="nowrap">@Ui.Date(rate.RateDate)</td>
+                                <td><strong>@rate.CurrencyCode</strong></td>
+                                <td class="num">@rate.Rate.ToString("0.######")</td>
+                                <td class="muted">@(rate.Source ?? "manual")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Add a rate</h2></div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="stack">
+                        <div class="field">
+                            <label>Currency</label>
+                            <select class="select" name="Input.CurrencyCode">
+                                @foreach (var currency in Model.Currencies.Where(c => c.Code != Model.BaseCurrency))
+                                {
+                                    <option value="@currency.Code">@currency.Code — @currency.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Date</label>
+                            <input class="input" type="date" name="Input.RateDate" value="@Ui.DateInput(Model.Today)"/>
+                        </div>
+                        <div class="field">
+                            <label>Rate (1 unit = ? @Model.BaseCurrency)</label>
+                            <input class="input num" name="Input.Rate" inputmode="decimal" required/>
+                        </div>
+                        <div class="field">
+                            <label>Source</label>
+                            <input class="input" name="Input.Source" placeholder="central bank, manual…"/>
+                        </div>
+                        <button class="btn btn-primary" type="submit">Save rate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card side-card">
+            <div class="card-head"><h2>Supported currencies</h2></div>
+            <div class="card-body">
+                <p class="help">@Model.Currencies.Count currencies are available. The company's base currency is
+                    <strong>@Model.BaseCurrency</strong>.</p>
+                <div class="flex flex-wrap" style="gap:6px">
+                    @foreach (var currency in Model.Currencies)
+                    {
+                        <span class="tag">@currency.Code</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

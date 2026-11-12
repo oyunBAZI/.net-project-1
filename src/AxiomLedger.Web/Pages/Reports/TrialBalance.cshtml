@@ -1,0 +1,84 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.TrialBalanceModel
+@{
+    ViewData["Title"] = "Trial balance";
+    var report = Model.Report;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Reports/Index">Reports</a> / Trial balance</div>
+        <h1>Trial balance</h1>
+        <div class="sub">@Ui.Date(report.From) – @Ui.Date(report.To) · @Model.CompanyName</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Reports/TrialBalance" asp-page-handler="Csv"
+           asp-route-from="@Ui.DateInput(report.From)" asp-route-to="@Ui.DateInput(report.To)">Export CSV</a>
+        <button class="btn btn-ghost" type="button" data-print>Print</button>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="from" value="@Ui.DateInput(report.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="to" value="@Ui.DateInput(report.To)"/>
+    </div>
+    <label class="check" style="margin-bottom:9px">
+        <input type="checkbox" name="includeZero" value="true" checked="@Model.IncludeZero"/> Include zero balances
+    </label>
+    <button class="btn btn-primary" type="submit">Run report</button>
+</form>
+
+<div class="card">
+    <div class="card-body">
+        <div class="report-title mb-2">
+            <h1>@Model.CompanyName</h1>
+            <div class="meta">Trial balance · @Ui.Date(report.From) to @Ui.Date(report.To) · @Model.CurrencyCode</div>
+        </div>
+        <div class="table-wrap">
+            <table class="table report-table">
+                <thead>
+                <tr>
+                    <th>Code</th><th>Account</th><th class="num">Opening</th><th class="num">Debit</th>
+                    <th class="num">Credit</th><th class="num">Closing</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in report.Rows)
+                {
+                    <tr>
+                        <td class="mono muted">@row.Code</td>
+                        <td>@row.Name</td>
+                        <td class="num">@Ui.Money(row.OpeningBalance, Model.CurrencyCode)</td>
+                        <td class="num">@(row.Debit != 0 ? Ui.Money(row.Debit, Model.CurrencyCode) : "")</td>
+                        <td class="num">@(row.Credit != 0 ? Ui.Money(row.Credit, Model.CurrencyCode) : "")</td>
+                        <td class="num">@Ui.Money(row.ClosingBalance, Model.CurrencyCode)</td>
+                    </tr>
+                }
+                </tbody>
+                <tfoot>
+                <tr>
+                    <td colspan="2">Totals</td>
+                    <td class="num">@Ui.Money(report.OpeningTotal, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.TotalDebit, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.TotalCredit, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.ClosingTotal, Model.CurrencyCode)</td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+        @if (report.IsBalanced)
+        {
+            <div class="alert alert-info mt-2">The trial balance agrees: total debits equal total credits and the
+                closing balance is zero.</div>
+        }
+        else
+        {
+            <div class="alert alert-danger mt-2">The trial balance does not agree. Check the journal and posting
+                controls before closing the period.</div>
+        }
+    </div>
+</div>

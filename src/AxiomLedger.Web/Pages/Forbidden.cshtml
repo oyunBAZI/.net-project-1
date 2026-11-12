@@ -1,0 +1,24 @@
+@page
+@{
+    ViewData["Title"] = "Access denied";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Access denied · Axiom Ledger</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+</head>
+<body class="auth-body">
+<main class="auth-main" style="min-height:100vh">
+    <div class="auth-card" style="text-align:center">
+        <div style="font-size:64px;font-weight:800;color:#d7b56d;letter-spacing:-.04em">403</div>
+        <h1 style="color:#fff;margin:8px 0">Access denied</h1>
+        <p style="color:#9fb3a9">Your role does not allow this action. Ask a company owner or administrator
+            if you need additional permissions.</p>
+        <a class="btn btn-primary mt-2" href="/">Return to dashboard</a>
+    </div>
+</main>
+</body>
+</html>

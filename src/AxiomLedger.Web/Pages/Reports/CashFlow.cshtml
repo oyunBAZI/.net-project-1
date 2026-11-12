@@ -1,0 +1,65 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.CashFlowModel
+@{
+    ViewData["Title"] = "Cash flow";
+    var report = Model.Report;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Reports/Index">Reports</a> / Cash flow</div>
+        <h1>Statement of cash flows</h1>
+        <div class="sub">@Ui.Date(report.From) – @Ui.Date(report.To) · direct method · @Model.CompanyName</div>
+    </div>
+    <div class="page-actions"><button class="btn btn-ghost" type="button" data-print>Print</button></div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="from" value="@Ui.DateInput(report.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="to" value="@Ui.DateInput(report.To)"/>
+    </div>
+    <button class="btn btn-primary" type="submit">Run report</button>
+</form>
+
+<div class="card" style="max-width:860px">
+    <div class="card-body">
+        <div class="report-title mb-2">
+            <h1>@Model.CompanyName</h1>
+            <div class="meta">Cash flows · @Ui.Date(report.From) to @Ui.Date(report.To) · @Model.CurrencyCode</div>
+        </div>
+        <table class="table report-table">
+            <tbody>
+            @foreach (var group in report.Sections)
+            {
+                <tr class="is-section"><td colspan="2">@group.Title</td></tr>
+                @if (group.Rows.Count == 0)
+                {
+                    <tr><td class="label-indent muted">No movements</td><td class="num">—</td></tr>
+                }
+                @foreach (var row in group.Rows)
+                {
+                    <tr>
+                        <td class="label-indent">@row.Label</td>
+                        <td class="num">@Ui.Money(row.Amount, Model.CurrencyCode)</td>
+                    </tr>
+                }
+                <tr class="is-subtotal"><td>Net cash from @group.Title.ToLowerInvariant()</td>
+                    <td class="num">@Ui.Money(group.Total, Model.CurrencyCode)</td></tr>
+            }
+            </tbody>
+            <tfoot>
+            <tr class="is-total"><td>Net increase / (decrease) in cash</td>
+                <td class="num">@Ui.Money(report.NetCashFlow, Model.CurrencyCode)</td></tr>
+            <tr><td>Cash at beginning of period</td><td class="num">@Ui.Money(report.OpeningCash, Model.CurrencyCode)</td></tr>
+            <tr class="is-total"><td>Cash at end of period</td>
+                <td class="num">@Ui.Money(report.ClosingCash, Model.CurrencyCode)</td></tr>
+            </tfoot>
+        </table>
+        <p class="help mt-2">Cash movements are classified from the contra account on each journal line:
+            fixed assets are investing, loans and equity are financing, everything else is operating.</p>
+    </div>
+</div>

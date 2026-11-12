@@ -1,0 +1,220 @@
+@page "{id:guid}"
+@model AxiomLedger.Web.Pages.Invoices.ViewModel
+@{
+    ViewData["Title"] = Model.Invoice.Number.Length > 0 ? Model.Invoice.Number : "Draft invoice";
+    var invoice = Model.Invoice;
+    var currency = invoice.CurrencyCode;
+    var title = invoice.Kind == InvoiceKind.CreditNote ? "Credit note" : "Invoice";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Invoices/Index">Invoices</a> / @(invoice.Number.Length > 0 ? invoice.Number : "Draft")</div>
+        <h1 class="flex" style="gap:10px">
+            @(invoice.Number.Length > 0 ? invoice.Number : "Draft invoice")
+            <span class="badge @Ui.Status(invoice.Status)">@invoice.Status</span>
+            @if (invoice.Kind == InvoiceKind.CreditNote)
+            {
+                <span class="tag">Credit note</span>
+            }
+        </h1>
+        <div class="sub">@invoice.Party?.Name · issued @Ui.Date(invoice.IssueDate)</div>
+    </div>
+    <div class="page-actions">
+        @if (invoice.IsEditable && Model.Can(Permission.ManageSales))
+        {
+            <a class="btn btn-ghost" asp-page="/Invoices/Edit" asp-route-id="@invoice.Id">Edit draft</a>
+        }
+        @if (invoice.Status == DocumentStatus.Draft && Model.Can(Permission.ManageSales))
+        {
+            <form method="post" asp-page-handler="Issue" data-confirm="Issue this invoice and post it?">
+                <button class="btn btn-primary" type="submit">Issue invoice</button>
+            </form>
+        }
+        @if (invoice.IsOpen && Model.Can(Permission.ManagePayments))
+        {
+            <a class="btn btn-secondary" asp-page="/Payments/New" asp-route-partyId="@invoice.PartyId"
+               asp-route-direction="Receipt" asp-route-invoiceId="@invoice.Id">Record payment</a>
+        }
+        <button class="btn btn-ghost" type="button" data-print>Print</button>
+        <a class="btn btn-ghost" asp-page="/Invoices/Index">Back</a>
+    </div>
+</div>
+
+<div asp-validation-summary="All" class="validation-summary"></div>
+
+@if (invoice.Status == DocumentStatus.Void)
+{
+    <div class="alert alert-danger mb-2">
+        <strong>Voided @Ui.Date(DateOnly.FromDateTime(invoice.VoidedAt ?? DateTime.UtcNow)):</strong>
+        @invoice.VoidReason
+    </div>
+}
+
+<div class="split">
+    <div>
+        <div class="card">
+            <div class="card-body">
+                <div class="flex-between mb-3 flex-wrap">
+                    <div>
+                        <div class="eyebrow">@Model.Company.Name</div>
+                        <h2>@title @invoice.Number</h2>
+                        <div class="muted" style="font-size:12.5px">
+                            @Model.Company.AddressLine1
+                            @if (!string.IsNullOrWhiteSpace(Model.Company.City))
+                            {
+                                <span> · @Model.Company.City @Model.Company.PostalCode</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.Company.TaxId))
+                            {
+                                <div>Tax ID @Model.Company.TaxId</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Amount due</div>
+                        <div class="doc-amount">@Ui.Money(invoice.BalanceDue, currency)</div>
+                        <div class="muted" style="font-size:12px">Due @Ui.Date(invoice.DueDate)</div>
+                    </div>
+                </div>
+
+                <div class="grid-2 mb-3">
+                    <div>
+                        <div class="eyebrow">Bill to</div>
+                        <strong>@invoice.Party?.Name</strong>
+                        <div class="muted" style="font-size:12.5px">
+                            @invoice.Party?.AddressLine1
+                            @if (!string.IsNullOrWhiteSpace(invoice.Party?.City))
+                            {
+                                <div>@invoice.Party.City @invoice.Party.Region @invoice.Party.PostalCode</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(invoice.Party?.Email))
+                            {
+                                <div>@invoice.Party.Email</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="text-right muted" style="font-size:12.5px">
+                        @if (!string.IsNullOrWhiteSpace(invoice.PurchaseOrderNumber))
+                        {
+                            <div>PO @invoice.PurchaseOrderNumber</div>
+                        }
+                        <div>Issued @Ui.Date(invoice.IssueDate)</div>
+                        <div>Currency @currency @(invoice.ExchangeRate != 1m ? $"· rate {invoice.ExchangeRate:0.####}" : "")</div>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Description</th><th>Account</th><th class="num">Qty</th>
+                            <th class="num">Unit price</th><th class="num">Disc.</th><th class="num">Tax</th>
+                            <th class="num">Amount</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var line in invoice.Lines.OrderBy(l => l.LineNumber))
+                        {
+                            <tr>
+                                <td><strong>@line.Description</strong></td>
+                                <td class="muted nowrap">@line.Account?.Code · @line.Account?.Name</td>
+                                <td class="num">@line.Quantity.ToString("0.####")</td>
+                                <td class="num">@Ui.Money(line.UnitPrice, currency)</td>
+                                <td class="num">@(line.DiscountPercent > 0 ? $"{line.DiscountPercent:0.##}%" : "—")</td>
+                                <td class="num">@(line.TaxAmount > 0 ? $"{line.TaxRate:0.##}%" : "—")</td>
+                                <td class="num">@Ui.Money(line.NetAmount + line.TaxAmount, currency)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="totals mt-2">
+                    <div class="totals-row"><span>Subtotal</span><span class="mono">@Ui.Money(invoice.Subtotal - invoice.DiscountTotal, currency)</span></div>
+                    @if (invoice.DiscountTotal > 0)
+                    {
+                        <div class="totals-row"><span>Discounts</span><span class="mono">@Ui.Money(invoice.DiscountTotal, currency)</span></div>
+                    }
+                    <div class="totals-row"><span>Tax</span><span class="mono">@Ui.Money(invoice.TaxTotal, currency)</span></div>
+                    <div class="totals-row is-grand"><span>Total</span><span class="mono">@Ui.Money(invoice.Total, currency)</span></div>
+                    <div class="totals-row"><span>Paid</span><span class="mono">@Ui.Money(invoice.AmountPaid, currency)</span></div>
+                    <div class="totals-row"><span>Balance due</span><span class="mono">@Ui.Money(invoice.BalanceDue, currency)</span></div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(invoice.Notes))
+                {
+                    <hr/>
+                    <div class="eyebrow">Notes</div>
+                    <p class="muted" style="white-space:pre-line">@invoice.Notes</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Status &amp; links</h2></div>
+            <div class="card-body">
+                <dl class="kv">
+                    <dt>Status</dt><dd><span class="badge @Ui.Status(invoice.Status)">@invoice.Status</span></dd>
+                    <dt>Issued</dt><dd>@(invoice.IssuedAt?.ToString("dd MMM yyyy HH:mm") ?? "—")</dd>
+                    <dt>Total</dt><dd>@Ui.Money(invoice.Total, currency)</dd>
+                    <dt>Paid</dt><dd>@Ui.Money(invoice.AmountPaid, currency)</dd>
+                    <dt>Balance</dt><dd>@Ui.Money(invoice.BalanceDue, currency)</dd>
+                </dl>
+                @if (invoice.JournalEntryId is { } journalId)
+                {
+                    <hr/>
+                    <a class="btn btn-ghost btn-sm" asp-page="/Journal/View" asp-route-id="@journalId">View ledger entry</a>
+                }
+            </div>
+        </div>
+
+        <div class="card side-card">
+            <div class="card-head"><h2>Payments applied</h2></div>
+            <div class="card-body">
+                @if (Model.Allocations.Count == 0)
+                {
+                    <p class="muted" style="margin:0">No payments allocated yet.</p>
+                }
+                else
+                {
+                    <div class="list">
+                        @foreach (var allocation in Model.Allocations)
+                        {
+                            <div class="list-item">
+                                <div class="li-main">
+                                    <strong>@allocation.Number</strong>
+                                    <small>@Ui.Date(allocation.Date) · @allocation.Method</small>
+                                </div>
+                                <div class="li-amount">
+                                    @Ui.Money(allocation.Amount, currency)
+                                    <div><a class="btn-link" asp-page="/Payments/View" asp-route-id="@allocation.PaymentId">Open</a></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (invoice.Status != DocumentStatus.Void && Model.Can(Permission.ManageSales))
+        {
+            <div class="card side-card">
+                <div class="card-head"><h2>Void</h2></div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Void"
+                          data-confirm="Void this invoice? A reversing journal will be posted.">
+                        <div class="field">
+                            <label>Reason</label>
+                            <input class="input" name="reason" placeholder="Duplicate, cancelled order…" required/>
+                        </div>
+                        <p class="help mt-1">Voiding is permanent and reverses the ledger entry. Payments must be
+                            reversed first.</p>
+                        <button class="btn btn-danger btn-sm mt-1" type="submit">Void invoice</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

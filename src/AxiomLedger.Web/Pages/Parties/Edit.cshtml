@@ -1,0 +1,115 @@
+@page "{id:guid?}"
+@model AxiomLedger.Web.Pages.Parties.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "New party" : "Edit party";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Parties/Index" asp-route-type="@Model.Input.Type">@(Model.Input.Type == PartyType.Vendor ? "Vendors" : "Customers")</a> / @(Model.IsNew ? "New" : "Edit")</div>
+        <h1>@(Model.IsNew ? "New party" : $"Edit {Model.Input.Name}")</h1>
+        <div class="sub">Customers, vendors, or both — balances are derived from posted documents.</div>
+    </div>
+</div>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+    <div class="card">
+        <div class="card-body">
+            <div class="form-grid three">
+                <div class="field">
+                    <label>Type</label>
+                    <select class="select" asp-for="Input.Type">
+                        <option value="@PartyType.Customer">Customer</option>
+                        <option value="@PartyType.Vendor">Vendor</option>
+                        <option value="@PartyType.Both">Customer &amp; vendor</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Code</label>
+                    <input class="input" asp-for="Input.Code" placeholder="Generated if blank"/>
+                </div>
+                <div class="field">
+                    <label>Name</label>
+                    <input class="input" asp-for="Input.Name" required/>
+                </div>
+                <div class="field">
+                    <label>Email</label>
+                    <input class="input" asp-for="Input.Email" type="email"/>
+                </div>
+                <div class="field">
+                    <label>Phone</label>
+                    <input class="input" asp-for="Input.Phone"/>
+                </div>
+                <div class="field">
+                    <label>Contact person</label>
+                    <input class="input" asp-for="Input.ContactName"/>
+                </div>
+                <div class="field">
+                    <label>Tax ID</label>
+                    <input class="input" asp-for="Input.TaxId"/>
+                </div>
+                <div class="field">
+                    <label>Currency</label>
+                    <select class="select" asp-for="Input.CurrencyCode">
+                        @foreach (var currency in Model.Currencies)
+                        {
+                            <option value="@currency.Code">@currency.Code — @currency.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Payment terms (days)</label>
+                    <input class="input num" asp-for="Input.PaymentTermsDays" type="number" min="0" max="365"/>
+                </div>
+                <div class="field span-2">
+                    <label>Address</label>
+                    <input class="input" asp-for="Input.AddressLine1"/>
+                </div>
+                <div class="field">
+                    <label>Address line 2</label>
+                    <input class="input" asp-for="Input.AddressLine2"/>
+                </div>
+                <div class="field">
+                    <label>City</label>
+                    <input class="input" asp-for="Input.City"/>
+                </div>
+                <div class="field">
+                    <label>Region / state</label>
+                    <input class="input" asp-for="Input.Region"/>
+                </div>
+                <div class="field">
+                    <label>Postal code</label>
+                    <input class="input" asp-for="Input.PostalCode"/>
+                </div>
+                <div class="field">
+                    <label>Country code</label>
+                    <input class="input" asp-for="Input.CountryCode" maxlength="2"/>
+                </div>
+                <div class="field">
+                    <label>Credit limit</label>
+                    <input class="input num" asp-for="Input.CreditLimit" inputmode="decimal"/>
+                </div>
+                <div class="field span-2">
+                    <label>Notes</label>
+                    <textarea class="textarea" asp-for="Input.Notes" rows="2"></textarea>
+                </div>
+                <div class="field" style="justify-content:end">
+                    <label class="check"><input asp-for="Input.IsActive"/> <span>Active</span></label>
+                </div>
+            </div>
+        </div>
+        <div class="card-foot">
+            <div class="btn-row">
+                <button class="btn btn-primary" type="submit">Save</button>
+                <a class="btn btn-ghost" asp-page="/Parties/Index" asp-route-type="@Model.Input.Type">Cancel</a>
+                @if (!Model.IsNew && Model.Can(Permission.ManageParties))
+                {
+                    <button class="btn btn-ghost" type="submit" asp-page-handler="Toggle"
+                            formnovalidate data-confirm="Change the active status of this party?">
+                        @(Model.Input.IsActive ? "Deactivate" : "Reactivate")
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</form>

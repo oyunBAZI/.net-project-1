@@ -1,0 +1,299 @@
+@page
+@model AxiomLedger.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var snapshot = Model.Snapshot;
+    var currency = snapshot?.CurrencyCode ?? "USD";
+    var hour = DateTime.UtcNow.Hour;
+    var greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    var firstName = (Model.CurrentDisplayName ?? "there").Split(' ')[0];
+}
+
+<div class="page-head">
+    <div>
+        <div class="eyebrow">@Ui.Date(Model.Today) · @(snapshot?.CompanyName ?? "No company selected")</div>
+        <h1>@greeting, @firstName</h1>
+        <div class="sub">A live view of your ledger, cash and outstanding balances.</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.ViewReports))
+        {
+            <a class="btn btn-ghost" asp-page="/Reports/TrialBalance">Trial balance</a>
+        }
+        @if (Model.Can(Permission.ManageSales))
+        {
+            <a class="btn btn-primary" asp-page="/Invoices/Edit">New invoice</a>
+        }
+    </div>
+</div>
+
+@if (snapshot is null)
+{
+    <div class="card">
+        <div class="empty">
+            <h3>No company selected</h3>
+            <p>Choose a company to see its dashboard, or create a new one.</p>
+            <a class="btn btn-primary" asp-page="/Companies/New">Create a company</a>
+        </div>
+    </div>
+}
+else
+{
+    @if (Model.ServiceError is not null)
+    {
+        <div class="alert alert-warn mb-2">@Model.ServiceError</div>
+    }
+
+    @if (Model.ShowStarter)
+    {
+        <div class="card mb-2">
+            <div class="card-body flex-between flex-wrap">
+                <div style="max-width:640px">
+                    <div class="eyebrow">Welcome to Axiom Ledger</div>
+                    <h2 class="mb-1">Your books are open and ready.</h2>
+                    <p class="muted mb-0">Your chart of accounts, tax codes and fiscal year are in place.
+                        Load a realistic sample company to explore every screen, or start recording your own
+                        transactions.</p>
+                </div>
+                <div class="btn-row">
+                    @if (Model.Can(Permission.ManageCompanies))
+                    {
+                        <form method="post" asp-page-handler="SeedDemo">
+                            <button class="btn btn-secondary" type="submit">Load sample company</button>
+                        </form>
+                    }
+                    <a class="btn btn-primary" asp-page="/Invoices/Edit">Create first invoice</a>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="stat-grid">
+        <div class="stat">
+            <span class="stat-accent"></span>
+            <div class="stat-label">Cash &amp; bank</div>
+            <div class="stat-value">@Ui.Money(snapshot.CashBalance, currency)</div>
+            <div class="stat-meta">Across all cash and bank accounts</div>
+        </div>
+        <div class="stat is-blue">
+            <span class="stat-accent"></span>
+            <div class="stat-label">Receivables</div>
+            <div class="stat-value">@Ui.Money(snapshot.ReceivableBalance, currency)</div>
+            <div class="stat-meta">@snapshot.OverdueInvoiceCount invoice(s) overdue · @Ui.Money(snapshot.OverdueAmount, currency)</div>
+        </div>
+        <div class="stat @(snapshot.PayableBalance > 0 ? "is-warn" : "")">
+            <span class="stat-accent"></span>
+            <div class="stat-label">Payables</div>
+            <div class="stat-value">@Ui.Money(snapshot.PayableBalance, currency)</div>
+            <div class="stat-meta">Outstanding vendor bills</div>
+        </div>
+        <div class="stat @(snapshot.NetProfitYtd >= 0 ? "" : "is-danger")">
+            <span class="stat-accent"></span>
+            <div class="stat-label">Net profit · YTD</div>
+            <div class="stat-value">@Ui.Money(snapshot.NetProfitYtd, currency)</div>
+            <div class="stat-meta">Revenue @Ui.Money(snapshot.RevenueYtd, currency) this year</div>
+        </div>
+    </div>
+
+    @if (snapshot.PendingApprovalCount > 0 || snapshot.DraftJournalCount > 0 || snapshot.UnreconciledBankLines > 0)
+    {
+        <div class="alert alert-info mb-2 flex-between flex-wrap">
+            <span>
+                @if (snapshot.PendingApprovalCount > 0)
+                {
+                    <strong>@snapshot.PendingApprovalCount</strong> @:journal(s) awaiting approval ·
+                }
+                @if (snapshot.DraftJournalCount > 0)
+                {
+                    <strong>@snapshot.DraftJournalCount</strong> @:draft(s) ·
+                }
+                @if (snapshot.UnreconciledBankLines > 0)
+                {
+                    <strong>@snapshot.UnreconciledBankLines</strong> @:bank line(s) unreconciled
+                }
+            </span>
+            <span class="btn-row">
+                <a class="btn btn-ghost btn-sm" asp-page="/Journal/Index" asp-route-Status="PendingApproval">Review queue</a>
+                <a class="btn btn-ghost btn-sm" asp-page="/Banking/Index">Reconcile</a>
+            </span>
+        </div>
+    }
+
+    <div class="dash-grid">
+        <div class="stack">
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <h2>Revenue vs expenses</h2>
+                        <small class="muted">Last 12 months · posted journals only</small>
+                    </div>
+                    <div class="legend">
+                        <span><i style="background:var(--accent)"></i>Revenue</span>
+                        <span><i style="background:#cbb27a"></i>Expenses</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        @foreach (var point in snapshot.MonthlySeries)
+                        {
+                            <div class="chart-col" title="@point.Label: revenue @Ui.Money(point.Revenue, currency), expenses @Ui.Money(point.Expenses, currency)">
+                                <div class="chart-bars">
+                                    <div class="chart-bar revenue" style="height:@Model.Height(point.Revenue)%"></div>
+                                    <div class="chart-bar expenses" style="height:@Model.Height(point.Expenses)%"></div>
+                                </div>
+                                <div class="chart-label">@point.Label</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head">
+                    <h2>Recent journal activity</h2>
+                    <a class="btn btn-ghost btn-sm" asp-page="/Journal/Index">View all</a>
+                </div>
+                <div class="card-body tight">
+                    @if (snapshot.RecentActivity.Count == 0)
+                    {
+                        <div class="empty"><p>No posted journals yet.</p></div>
+                    }
+                    else
+                    {
+                        <div class="table-wrap">
+                            <table class="table">
+                                <thead>
+                                <tr><th>Entry</th><th>Memo</th><th>Source</th><th class="num">Amount</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var item in snapshot.RecentActivity)
+                                {
+                                    <tr>
+                                        <td class="nowrap">
+                                            <a class="row-link" asp-page="/Journal/View" asp-route-id="@item.Id">@item.Number</a>
+                                            <div class="muted" style="font-size:11.5px">@Ui.Date(item.Date)</div>
+                                        </td>
+                                        <td>@item.Memo</td>
+                                        <td><span class="tag">@Ui.Source(item.Source)</span></td>
+                                        <td class="num">@Ui.Money(item.Amount, currency)</td>
+                                        <td class="text-right">
+                                            <span class="badge @Ui.Status(item.Status)">@item.Status</span>
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card side-card">
+                <div class="card-head"><h2>Books at a glance</h2></div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="label">Revenue this month</span>
+                        <span class="value">@Ui.Money(snapshot.RevenueMtd, currency)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">Expenses this month</span>
+                        <span class="value">@Ui.Money(snapshot.ExpensesMtd, currency)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">Tax liability</span>
+                        <span class="value">@Ui.Money(snapshot.VatLiability, currency)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">Draft journals</span>
+                        <span class="value">@snapshot.DraftJournalCount</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">Awaiting approval</span>
+                        <span class="value">@snapshot.PendingApprovalCount</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">Unreconciled bank lines</span>
+                        <span class="value">@snapshot.UnreconciledBankLines</span>
+                    </div>
+                    @if (Model.LockDate is not null)
+                    {
+                        <div class="metric-row">
+                            <span class="label">Books locked through</span>
+                            <span class="value">@Ui.Date(Model.LockDate)</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card side-card">
+                <div class="card-head"><h2>Quick actions</h2></div>
+                <div class="card-body">
+                    <div class="quick-grid">
+                        @if (Model.Can(Permission.ManageSales))
+                        {
+                            <a class="quick-link" asp-page="/Invoices/Edit">New invoice<small>Bill a customer</small></a>
+                        }
+                        @if (Model.Can(Permission.ManagePurchases))
+                        {
+                            <a class="quick-link" asp-page="/Bills/Edit">New bill<small>Record a vendor bill</small></a>
+                        }
+                        @if (Model.Can(Permission.ManagePayments))
+                        {
+                            <a class="quick-link" asp-page="/Payments/New">Record payment<small>Receipt or payout</small></a>
+                        }
+                        @if (Model.Can(Permission.CreateJournal))
+                        {
+                            <a class="quick-link" asp-page="/Journal/Edit">Journal entry<small>Manual adjustment</small></a>
+                        }
+                        @if (Model.Can(Permission.ManageBanking))
+                        {
+                            <a class="quick-link" asp-page="/Banking/Index">Banking<small>Import &amp; reconcile</small></a>
+                        }
+                        @if (Model.Can(Permission.ViewReports))
+                        {
+                            <a class="quick-link" asp-page="/Reports/Index">Reports<small>Financial statements</small></a>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card side-card">
+                <div class="card-head">
+                    <h2>Invoices due</h2>
+                    <a class="btn btn-ghost btn-sm" asp-page="/Invoices/Index">All invoices</a>
+                </div>
+                <div class="card-body">
+                    @if (snapshot.RecentInvoices.Count == 0)
+                    {
+                        <p class="muted" style="margin:0">Nothing outstanding. Nice work.</p>
+                    }
+                    else
+                    {
+                        <div class="list">
+                            @foreach (var invoice in snapshot.RecentInvoices)
+                            {
+                                <div class="list-item">
+                                    <div class="li-main">
+                                        <strong>@invoice.Number · @invoice.PartyName</strong>
+                                        <small>Due @Ui.Date(invoice.DueDate)
+                                            @if (invoice.IsOverdue)
+                                            {
+                                                <span class="badge badge-danger" style="margin-left:4px">Overdue</span>
+                                            }
+                                        </small>
+                                    </div>
+                                    <div class="li-amount">
+                                        @Ui.Money(invoice.Balance, currency)
+                                        <div><a class="btn-link" asp-page="/Invoices/View" asp-route-id="@invoice.Id">Open</a></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}

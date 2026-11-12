@@ -1,0 +1,80 @@
+@page
+@model AxiomLedger.Web.Pages.Companies.NewModel
+@{
+    ViewData["Title"] = "New company";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Multi-company</div>
+        <h1>Open another set of books</h1>
+        <div class="sub">Each company has its own chart of accounts, fiscal calendar, users and reports.</div>
+    </div>
+</div>
+
+<form method="post">
+    <div class="card" style="max-width:900px">
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <div class="form-grid">
+                <div class="field span-2">
+                    <label asp-for="Name">Company name</label>
+                    <input class="input" asp-for="Name" placeholder="Northwind Trading Co."/>
+                </div>
+                <div class="field">
+                    <label asp-for="LegalName">Legal name</label>
+                    <input class="input" asp-for="LegalName"/>
+                </div>
+                <div class="field">
+                    <label asp-for="TaxId">Tax identification number</label>
+                    <input class="input" asp-for="TaxId"/>
+                </div>
+                <div class="field">
+                    <label asp-for="BaseCurrencyCode">Base currency</label>
+                    <input class="input" asp-for="BaseCurrencyCode" maxlength="3"/>
+                </div>
+                <div class="field">
+                    <label asp-for="CountryCode">Country</label>
+                    <input class="input" asp-for="CountryCode" maxlength="2"/>
+                </div>
+                <div class="field">
+                    <label asp-for="FiscalYearStartMonth">Fiscal year starts</label>
+                    <select class="select" asp-for="FiscalYearStartMonth">
+                        @for (var m = 1; m <= 12; m++)
+                        {
+                            <option value="@m">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label asp-for="Industry">Chart of accounts</label>
+                    <select class="select" asp-for="Industry">
+                        <option value="general">General business</option>
+                        <option value="services">Professional services</option>
+                        <option value="retail">Retail &amp; e-commerce</option>
+                        <option value="manufacturing">Manufacturing</option>
+                    </select>
+                </div>
+                <div class="field span-2">
+                    <label asp-for="AddressLine1">Address</label>
+                    <input class="input" asp-for="AddressLine1"/>
+                </div>
+                <div class="field">
+                    <label asp-for="City">City</label>
+                    <input class="input" asp-for="City"/>
+                </div>
+                <div class="field">
+                    <label asp-for="PostalCode">Postal code</label>
+                    <input class="input" asp-for="PostalCode"/>
+                </div>
+            </div>
+            <p class="help mt-2">A complete chart of accounts, three tax codes and the current fiscal year are
+                created automatically. You will be the owner of the new company.</p>
+        </div>
+        <div class="card-foot">
+            <div class="btn-row">
+                <button class="btn btn-primary" type="submit">Create company</button>
+                <a class="btn btn-ghost" asp-page="/Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>

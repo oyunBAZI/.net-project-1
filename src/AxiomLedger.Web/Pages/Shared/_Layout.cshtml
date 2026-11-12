@@ -1,0 +1,168 @@
+@inject AxiomLedger.Web.Services.BrandingService Branding
+@inject AxiomLedger.Domain.ICurrentUser Actor
+@inject AxiomLedger.Application.Services.CompanyService Companies
+@{
+    var page = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    var isAuthPage = page is "/Login" or "/Setup";
+    var role = Actor.Role;
+    bool Can(Permission permission) => role is { } r && RolePermissions.Allows(r, permission);
+    var userId = Actor.UserId;
+    var companies = userId is null ? new List<CompanyOption>() : (await Companies.ListForUserAsync(userId)).ToList();
+    var selectedId = Actor.CompanyId;
+    var selected = companies.FirstOrDefault(c => c.Id == selectedId) ?? companies.FirstOrDefault();
+    var displayName = Actor.DisplayName ?? Actor.Email ?? "Account";
+    string Active(string prefix) => page.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? "is-active" : "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>@ViewData["Title"] · @Branding.ProductName</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml"/>
+</head>
+<body class="@(isAuthPage ? "auth-body" : "app-body")">
+@if (!isAuthPage)
+{
+    <div class="shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <span class="brand-mark">A</span>
+                <span class="brand-text">
+                    <strong>@Branding.ProductName</strong>
+                    <small>@Branding.Tagline</small>
+                </span>
+            </div>
+
+            <nav class="nav">
+                <div class="nav-group">
+                    <a class="nav-link @Active("/Index")" asp-page="/Index"><span class="nav-icon">◧</span>Dashboard</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-label">Sales</div>
+                    <a class="nav-link @(page.StartsWith("/Invoices") ? "is-active" : "")" asp-page="/Invoices/Index">
+                        <span class="nav-icon">↗</span>Invoices
+                    </a>
+                    <a class="nav-link @(page == "/Parties/Index" && Context.Request.Query["type"] == "Customer" ? "is-active" : "")"
+                       asp-page="/Parties/Index" asp-route-type="Customer"><span class="nav-icon">◎</span>Customers</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-label">Purchases</div>
+                    <a class="nav-link @(page.StartsWith("/Bills") ? "is-active" : "")" asp-page="/Bills/Index">
+                        <span class="nav-icon">↙</span>Bills
+                    </a>
+                    <a class="nav-link @(page == "/Parties/Index" && Context.Request.Query["type"] == "Vendor" ? "is-active" : "")"
+                       asp-page="/Parties/Index" asp-route-type="Vendor"><span class="nav-icon">◍</span>Vendors</a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-label">Money</div>
+                    <a class="nav-link @(page.StartsWith("/Payments") ? "is-active" : "")" asp-page="/Payments/Index">
+                        <span class="nav-icon">⇄</span>Payments
+                    </a>
+                    <a class="nav-link @(page.StartsWith("/Banking") ? "is-active" : "")" asp-page="/Banking/Index">
+                        <span class="nav-icon">▤</span>Banking
+                    </a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-label">Accounting</div>
+                    <a class="nav-link @(page.StartsWith("/Journal") ? "is-active" : "")" asp-page="/Journal/Index">
+                        <span class="nav-icon">≡</span>Journal
+                    </a>
+                    <a class="nav-link @(page.StartsWith("/Accounts") ? "is-active" : "")" asp-page="/Accounts/Index">
+                        <span class="nav-icon">⌗</span>Chart of accounts
+                    </a>
+                    <a class="nav-link @(page.StartsWith("/Reports") ? "is-active" : "")" asp-page="/Reports/Index">
+                        <span class="nav-icon">◫</span>Reports
+                    </a>
+                </div>
+                @if (Can(Permission.ManageSettings) || Can(Permission.ManageUsers) || Can(Permission.ViewAudit))
+                {
+                    <div class="nav-group">
+                        <div class="nav-label">Administration</div>
+                        @if (Can(Permission.ManageSettings))
+                        {
+                            <a class="nav-link @(page.StartsWith("/Settings/Index") || page.StartsWith("/Settings/Taxes") || page.StartsWith("/Settings/Currencies") || page.StartsWith("/Settings/Periods") ? "is-active" : "")"
+                               asp-page="/Settings/Index"><span class="nav-icon">⚙</span>Settings</a>
+                        }
+                        @if (Can(Permission.ManageUsers))
+                        {
+                            <a class="nav-link @(page.StartsWith("/Settings/Users") ? "is-active" : "")" asp-page="/Settings/Users">
+                                <span class="nav-icon">☰</span>Users &amp; roles
+                            </a>
+                        }
+                        @if (Can(Permission.ViewAudit))
+                        {
+                            <a class="nav-link @(page.StartsWith("/Settings/Audit") ? "is-active" : "")" asp-page="/Settings/Audit">
+                                <span class="nav-icon">◎</span>Audit trail
+                            </a>
+                        }
+                    </div>
+                }
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-chip">
+                    <span class="avatar">@Ui.Initials(displayName)</span>
+                    <span class="user-meta">
+                        <strong>@displayName</strong>
+                        <small>@(role?.ToString() ?? "No access")</small>
+                    </span>
+                    <a class="icon-btn" asp-page="/Logout" title="Sign out">⏻</a>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main">
+            <header class="topbar">
+                <button class="icon-btn menu-btn" type="button" data-toggle-sidebar aria-label="Toggle menu">☰</button>
+                <form method="post" asp-page="/SwitchCompany" class="company-switch">
+                    @Html.AntiForgeryToken()
+                    <label class="sr-only" for="companySelect">Company</label>
+                    <select id="companySelect" name="companyId" data-company-switch>
+                        @foreach (var company in companies)
+                        {
+                            <option value="@company.Id" selected="@(company.Id == selected?.Id)">
+                                @company.Name · @company.CurrencyCode
+                            </option>
+                        }
+                    </select>
+                </form>
+                <div class="topbar-actions">
+                    @if (Can(Permission.ManageSales))
+                    {
+                        <a class="btn btn-ghost btn-sm" asp-page="/Invoices/Edit">New invoice</a>
+                    }
+                    @if (Can(Permission.CreateJournal))
+                    {
+                        <a class="btn btn-ghost btn-sm" asp-page="/Journal/Edit">New journal</a>
+                    }
+                    <a class="btn btn-primary btn-sm" asp-page="/Payments/New">Record payment</a>
+                    <a class="btn btn-ghost btn-sm" asp-page="/Account">@Ui.Initials(displayName)</a>
+                </div>
+            </header>
+
+            <main class="content">
+                @if (TempData["Success"] is string success)
+                {
+                    <div class="toast toast-success" role="status">@success</div>
+                }
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="toast toast-error" role="alert">@error</div>
+                }
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+    <form id="antiforgery" class="hidden">@Html.AntiForgeryToken()</form>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+}
+else
+{
+    @RenderBody()
+    <script src="~/js/site.js" asp-append-version="true"></script>
+}
+</body>
+</html>

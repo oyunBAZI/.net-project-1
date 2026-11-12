@@ -1,0 +1,143 @@
+@page
+@model AxiomLedger.Web.Pages.SetupModel
+@inject AxiomLedger.Web.Services.BrandingService Branding
+@{
+    ViewData["Title"] = "Set up your books";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Set up · @Branding.ProductName</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml"/>
+</head>
+<body class="auth-body">
+<div class="auth-shell">
+    <aside class="auth-aside">
+        <div class="brand">
+            <span class="brand-mark">A</span>
+            <span class="brand-text">
+                <strong>@Branding.ProductName</strong>
+                <small>@Branding.Tagline</small>
+            </span>
+        </div>
+        <div>
+            <h1>Let's open your books.</h1>
+            <p>This wizard creates your administrator account and your first company. A complete chart of
+                accounts, tax codes and the current fiscal year are generated automatically — every one of
+                them can be tailored afterwards.</p>
+            <ul class="auth-features">
+                <li><span>◆</span> Your database stays on infrastructure you control</li>
+                <li><span>◆</span> Roles, approvals and audit logging are on from day one</li>
+                <li><span>◆</span> Add more companies at any time from Settings</li>
+            </ul>
+        </div>
+        <div class="auth-foot">Need sample data? You can load a demo company after setup.</div>
+    </aside>
+
+    <main class="auth-main">
+        <div class="auth-card" style="max-width:560px">
+            <div class="brand logo-mobile">
+                <span class="brand-mark">A</span>
+                <span class="brand-text">
+                    <strong>@Branding.ProductName</strong>
+                    <small>@Branding.Tagline</small>
+                </span>
+            </div>
+            <h2>Create your workspace</h2>
+            <p class="sub">First run — this only appears once.</p>
+
+            <div class="card">
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger mb-2">@Model.ErrorMessage</div>
+                }
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+                    <div class="fieldset">
+                        <legend>Administrator</legend>
+                        <div class="form-grid">
+                            <div class="field">
+                                <label asp-for="DisplayName">Your name</label>
+                                <input class="input" asp-for="DisplayName" placeholder="Alex Morgan"/>
+                            </div>
+                            <div class="field">
+                                <label asp-for="Email">Email</label>
+                                <input class="input" asp-for="Email" type="email" placeholder="you@company.com"/>
+                            </div>
+                            <div class="field">
+                                <label asp-for="Password">Password</label>
+                                <input class="input" asp-for="Password" type="password" autocomplete="new-password"/>
+                                <span class="hint">At least 10 characters, with a letter and a number.</span>
+                            </div>
+                            <div class="field">
+                                <label asp-for="ConfirmPassword">Confirm password</label>
+                                <input class="input" asp-for="ConfirmPassword" type="password"
+                                       autocomplete="new-password"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fieldset">
+                        <legend>Company</legend>
+                        <div class="form-grid">
+                            <div class="field span-2">
+                                <label asp-for="CompanyName">Company name</label>
+                                <input class="input" asp-for="CompanyName" placeholder="Northwind Trading Co."/>
+                            </div>
+                            <div class="field">
+                                <label asp-for="BaseCurrencyCode">Base currency</label>
+                                <select class="select" asp-for="BaseCurrencyCode">
+                                    <option value="USD">USD — US Dollar</option>
+                                    <option value="EUR">EUR — Euro</option>
+                                    <option value="GBP">GBP — British Pound</option>
+                                    <option value="CAD">CAD — Canadian Dollar</option>
+                                    <option value="AUD">AUD — Australian Dollar</option>
+                                    <option value="INR">INR — Indian Rupee</option>
+                                    <option value="JPY">JPY — Japanese Yen</option>
+                                    <option value="ZAR">ZAR — South African Rand</option>
+                                    <option value="NGN">NGN — Nigerian Naira</option>
+                                    <option value="AED">AED — UAE Dirham</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label asp-for="FiscalYearStartMonth">Fiscal year starts</label>
+                                <select class="select" asp-for="FiscalYearStartMonth">
+                                    @for (var m = 1; m <= 12; m++)
+                                    {
+                                        <option value="@m">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label asp-for="Industry">Chart of accounts</label>
+                                <select class="select" asp-for="Industry">
+                                    <option value="general">General business</option>
+                                    <option value="services">Professional services</option>
+                                    <option value="retail">Retail &amp; e-commerce</option>
+                                    <option value="manufacturing">Manufacturing</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label asp-for="CountryCode">Country</label>
+                                <input class="input" asp-for="CountryCode" placeholder="US"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-block btn-lg" type="submit">Create workspace</button>
+                </form>
+            </div>
+            <div class="auth-links">
+                <span>Already installed?</span>
+                <a asp-page="/Login">Sign in</a>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

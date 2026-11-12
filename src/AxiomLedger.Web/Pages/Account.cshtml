@@ -1,0 +1,81 @@
+@page
+@model AxiomLedger.Web.Pages.AccountModel
+@{
+    ViewData["Title"] = "My account";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Personal settings</div>
+        <h1>My account</h1>
+        <div class="sub">Profile, password and the companies you can access.</div>
+    </div>
+</div>
+
+<div class="split">
+    <div class="stack">
+        <div class="card">
+            <div class="card-head"><h2>Profile</h2></div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Profile">
+                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label asp-for="DisplayName">Display name</label>
+                            <input class="input" asp-for="DisplayName"/>
+                        </div>
+                        <div class="field">
+                            <label>Email</label>
+                            <input class="input" value="@Model.CurrentEmail" readonly/>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Save profile</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h2>Password</h2></div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Password">
+                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label asp-for="CurrentPassword">Current password</label>
+                            <input class="input" asp-for="CurrentPassword" type="password"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="NewPassword">New password</label>
+                            <input class="input" asp-for="NewPassword" type="password"/>
+                            <span class="hint">At least 10 characters with a letter and a number.</span>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Change password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-head"><h2>Access</h2></div>
+            <div class="card-body">
+                <p class="muted mb-2">You are signed in as <strong>@Model.CurrentEmail</strong>.</p>
+                <dl class="kv">
+                    <dt>Current company</dt>
+                    <dd>@Model.CompanyName</dd>
+                    <dt>Role</dt>
+                    <dd>@(Model.CurrentRole?.ToString() ?? "—")</dd>
+                    <dt>Permissions</dt>
+                    <dd>@Model.PermissionSummary</dd>
+                </dl>
+                <hr/>
+                <p class="help">Roles are assigned per company by an administrator. Segregation of duties can
+                    prevent the same person from preparing and approving a journal.</p>
+            </div>
+        </div>
+    </div>
+</div>

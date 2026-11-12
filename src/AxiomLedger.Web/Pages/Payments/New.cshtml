@@ -1,0 +1,199 @@
+@page
+@model AxiomLedger.Web.Pages.Payments.NewModel
+@{
+    ViewData["Title"] = "Record payment";
+    var isReceipt = Model.Direction == PaymentDirection.Receipt;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Payments/Index">Payments</a> / New</div>
+        <h1>Record @(isReceipt ? "a receipt" : "a payment")</h1>
+        <div class="sub">Post money movement and allocate it to open invoices or bills.</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Payments/Index">Cancel</a>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>Type</label>
+        <select class="select" name="Direction">
+            <option value="Receipt" selected="@(isReceipt)">Customer receipt</option>
+            <option value="Disbursement" selected="@(!isReceipt)">Vendor payment</option>
+        </select>
+    </div>
+    <div class="field grow">
+        <label>@(isReceipt ? "Customer" : "Vendor")</label>
+        <select class="select" name="PartyId">
+            <option value="">Select party</option>
+            @foreach (var party in Model.Parties)
+            {
+                <option value="@party.Id" selected="@(party.Id == Model.SelectedParty)">@party.Name</option>
+            }
+        </select>
+    </div>
+    <button class="btn btn-ghost" type="submit">Load open items</button>
+</form>
+
+<form method="post">
+    <div asp-validation-summary="All" class="validation-summary"></div>
+    <input type="hidden" name="Input.Direction" value="@Model.Direction"/>
+
+    <div class="split">
+        <div class="stack">
+            <div class="card">
+                <div class="card-head"><h2>Payment details</h2></div>
+                <div class="card-body">
+                    <div class="form-grid three">
+                        <div class="field">
+                            <label>Amount</label>
+                            <input class="input num" name="Input.Amount" value="@Model.Input.Amount.ToString("0.00")"
+                                   inputmode="decimal" required/>
+                        </div>
+                        <div class="field">
+                            <label>Date</label>
+                            <input class="input" type="date" name="Input.PaymentDate"
+                                   value="@Ui.DateInput(Model.Input.PaymentDate)"/>
+                        </div>
+                        <div class="field">
+                            <label>Currency</label>
+                            <select class="select" name="Input.CurrencyCode">
+                                @foreach (var currency in Model.Currencies)
+                                {
+                                    <option value="@currency.Code" selected="@(currency.Code == Model.Input.CurrencyCode)">@currency.Code</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Party</label>
+                            <select class="select" name="Input.PartyId">
+                                <option value="">No party (bank fee, interest…)</option>
+                                @foreach (var party in Model.Parties)
+                                {
+                                    <option value="@party.Id" selected="@(party.Id == Model.SelectedParty)">@party.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Method</label>
+                            <select class="select" name="Input.Method">
+                                @foreach (var method in Enum.GetValues<PaymentMethod>())
+                                {
+                                    <option value="@method">@method</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>@(isReceipt ? "Received into" : "Paid from")</label>
+                            <select class="select" name="destination" required>
+                                <option value="">Select account</option>
+                                @foreach (var bank in Model.BankAccounts)
+                                {
+                                    <option value="bank:@bank.Id">@bank.Name (@bank.CurrencyCode)</option>
+                                }
+                                @foreach (var cash in Model.CashAccounts)
+                                {
+                                    <option value="account:@cash.Id">@cash.Display (cash)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Reference</label>
+                            <input class="input" name="Input.Reference"/>
+                        </div>
+                        <div class="field span-2">
+                            <label>Notes</label>
+                            <input class="input" name="Input.Notes"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head">
+                    <h2>Allocate to open @(isReceipt ? "invoices" : "bills")</h2>
+                    @if (Model.SelectedParty is not null)
+                    {
+                        <span class="muted">@Model.Documents.Count open</span>
+                    }
+                </div>
+                <div class="card-body tight">
+                    @if (Model.SelectedParty is null)
+                    {
+                        <div class="empty" style="padding:26px">
+                            <p>Select a party above and press <strong>Load open items</strong> to allocate this
+                                payment.</p>
+                        </div>
+                    }
+                    else if (Model.Documents.Count == 0)
+                    {
+                        <div class="empty" style="padding:26px">
+                            <p>No open documents. The full amount will remain as a credit on the party account.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-wrap">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>Apply</th><th>Document</th><th>Due</th><th>Status</th>
+                                    <th class="num">Total</th><th class="num">Balance</th><th class="num">Amount to apply</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var document in Model.Documents)
+                                {
+                                    var key = "apply_" + document.Id;
+                                    <tr>
+                                        <td><input type="checkbox" name="@key" value="true"/></td>
+                                        <td><strong>@document.Number</strong></td>
+                                        <td class="muted nowrap">@Ui.Date(document.DueDate)</td>
+                                        <td>
+                                            @if (document.DaysOverdue > 0)
+                                            {
+                                                <span class="badge badge-danger">@document.DaysOverdue days late</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-neutral">Current</span>
+                                            }
+                                        </td>
+                                        <td class="num">@Ui.Money(document.Total, document.CurrencyCode)</td>
+                                        <td class="num">@Ui.Money(document.Balance, document.CurrencyCode)</td>
+                                        <td>
+                                            <input class="input num" name="amount_@document.Id"
+                                                   value="@document.Balance.ToString("0.00")" inputmode="decimal"/>
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                Tip: tick the documents to settle, or leave nothing ticked and the payment will be recorded as a
+                credit on the party account. Payments in a foreign currency post to the base currency at the
+                rate you enter for the date.
+            </div>
+        </div>
+
+        <div>
+            <div class="card side-card">
+                <div class="card-head"><h2>Post payment</h2></div>
+                <div class="card-body">
+                    <p class="help">The payment posts immediately: the bank or cash account is debited/credited and
+                        the receivable/payable control account is updated. Allocated invoices change status
+                        automatically.</p>
+                    <div class="form-actions" style="margin-top:12px">
+                        <button class="btn btn-primary btn-block" type="submit">Post payment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,106 @@
+@page "{id:guid?}"
+@model AxiomLedger.Web.Pages.Accounts.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "New account" : "Edit account";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Accounts/Index">Chart of accounts</a> / @(Model.IsNew ? "New" : Model.Input.Code)</div>
+        <h1>@(Model.IsNew ? "New account" : $"Edit {Model.Input.Code} · {Model.Input.Name}")</h1>
+        <div class="sub">Grouping drives where the account appears on the financial statements.</div>
+    </div>
+</div>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+    <div class="card">
+        <div class="card-body">
+            <div class="form-grid three">
+                <div class="field">
+                    <label>Code</label>
+                    <input class="input" asp-for="Input.Code" required placeholder="e.g. 6150"/>
+                </div>
+                <div class="field span-2">
+                    <label>Name</label>
+                    <input class="input" asp-for="Input.Name" required/>
+                </div>
+                <div class="field">
+                    <label>Type</label>
+                    <select class="select" asp-for="Input.Type">
+                        @foreach (var type in Enum.GetValues<AccountType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Statement group</label>
+                    <select class="select" asp-for="Input.Group">
+                        @foreach (var group in Enum.GetValues<AccountGroup>())
+                        {
+                            <option value="@group">@Ui.Group(group)</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Parent account</label>
+                    <select class="select" asp-for="Input.ParentId">
+                        <option value="">None (top level)</option>
+                        @foreach (var parent in Model.Parents)
+                        {
+                            <option value="@parent.Id">@parent.Display</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Cash flow category</label>
+                    <select class="select" asp-for="Input.CashFlowCategory">
+                        @foreach (var category in Enum.GetValues<CashFlowCategory>())
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Currency restriction</label>
+                    <input class="input" asp-for="Input.CurrencyCode" maxlength="3" placeholder="Any"/>
+                </div>
+                <div class="field span-2">
+                    <label>Description</label>
+                    <input class="input" asp-for="Input.Description"/>
+                </div>
+                <div class="field">
+                    <label class="check"><input asp-for="Input.IsPostable"/> <span>Postable</span></label>
+                    <span class="hint">Summary accounts collect sub-accounts only.</span>
+                </div>
+                <div class="field">
+                    <label class="check"><input asp-for="Input.IsActive"/> <span>Active</span></label>
+                </div>
+                <div class="field">
+                    <label class="check"><input asp-for="Input.IsCashAccount"/> <span>Cash / bank account</span></label>
+                </div>
+                <div class="field">
+                    <label class="check"><input asp-for="Input.IsContra"/> <span>Contra account</span></label>
+                    <span class="hint">Flips the normal balance, e.g. accumulated depreciation.</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-foot">
+            <div class="btn-row">
+                <button class="btn btn-primary" type="submit">Save account</button>
+                <a class="btn btn-ghost" asp-page="/Accounts/Index">Cancel</a>
+                @if (!Model.IsNew && Model.Can(Permission.ManageAccounts))
+                {
+                    <button class="btn btn-ghost" type="submit" asp-page-handler="Toggle" formnovalidate
+                            data-confirm="Toggle whether this account is active?">
+                        @(Model.Input.IsActive ? "Deactivate" : "Reactivate")
+                    </button>
+                    <button class="btn btn-danger" type="submit" asp-page-handler="Delete" formnovalidate
+                            data-confirm="Delete this account? This cannot be undone.">
+                        Delete
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</form>

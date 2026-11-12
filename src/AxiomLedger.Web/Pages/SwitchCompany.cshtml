@@ -1,0 +1,50 @@
+@page
+@model AxiomLedger.Web.Pages.SwitchCompanyModel
+@{
+    ViewData["Title"] = "Choose a company";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Workspace</div>
+        <h1>Choose a company</h1>
+        <div class="sub">You have access to several sets of books. Pick one to continue.</div>
+    </div>
+</div>
+
+<div class="card" style="max-width:720px">
+    <div class="card-body">
+        @if (Model.Companies.Count == 0)
+        {
+            <div class="empty">
+                <h3>No company access</h3>
+                <p>Your account is not linked to a company. Ask an administrator for an invitation,
+                    or sign in with a different account.</p>
+                <div class="btn-row" style="justify-content:center">
+                    <a class="btn btn-primary" asp-page="/Companies/New">Create a company</a>
+                    <a class="btn btn-ghost" asp-page="/Logout">Sign out</a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="list">
+                @foreach (var company in Model.Companies)
+                {
+                    <div class="list-item">
+                        <span class="avatar" style="background:var(--accent-soft);color:var(--accent)">
+                            @Ui.Initials(company.Name)
+                        </span>
+                        <div class="li-main">
+                            <strong>@company.Name</strong>
+                            <small>@company.CurrencyCode · @company.Role</small>
+                        </div>
+                        <form method="post">
+                            <input type="hidden" name="companyId" value="@company.Id"/>
+                            <button class="btn btn-ghost btn-sm" type="submit">Open books</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

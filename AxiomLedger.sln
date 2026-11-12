@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{61DA5FD3-222D-4049-BEB4-98A22495F48E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AxiomLedger.Domain", "src\AxiomLedger.Domain\AxiomLedger.Domain.csproj", "{3E6C6E94-F06A-4819-9266-75D534F57F49}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AxiomLedger.Application", "src\AxiomLedger.Application\AxiomLedger.Application.csproj", "{579613A9-D954-451D-BCCD-C0318B17B89E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AxiomLedger.Infrastructure", "src\AxiomLedger.Infrastructure\AxiomLedger.Infrastructure.csproj", "{C99BEDB6-AAD2-4284-A37F-12BE497F3156}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AxiomLedger.Web", "src\AxiomLedger.Web\AxiomLedger.Web.csproj", "{FFA6BFE3-9E4D-48A6-9132-52EF9BA9F0C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AxiomLedger.Cli", "src\AxiomLedger.Cli\AxiomLedger.Cli.csproj", "{72A5D12A-5AAA-4813-826E-DEFAEF3CAABF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{9ADCF84D-DEFE-4E7F-B0D0-3ECA9CAA0499}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AxiomLedger.Tests", "tests\AxiomLedger.Tests\AxiomLedger.Tests.csproj", "{13F8FF5E-4B30-4266-812A-DFAFAFB6748D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3E6C6E94-F06A-4819-9266-75D534F57F49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E6C6E94-F06A-4819-9266-75D534F57F49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E6C6E94-F06A-4819-9266-75D534F57F49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E6C6E94-F06A-4819-9266-75D534F57F49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{579613A9-D954-451D-BCCD-C0318B17B89E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{579613A9-D954-451D-BCCD-C0318B17B89E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{579613A9-D954-451D-BCCD-C0318B17B89E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{579613A9-D954-451D-BCCD-C0318B17B89E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C99BEDB6-AAD2-4284-A37F-12BE497F3156}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C99BEDB6-AAD2-4284-A37F-12BE497F3156}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C99BEDB6-AAD2-4284-A37F-12BE497F3156}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C99BEDB6-AAD2-4284-A37F-12BE497F3156}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFA6BFE3-9E4D-48A6-9132-52EF9BA9F0C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFA6BFE3-9E4D-48A6-9132-52EF9BA9F0C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFA6BFE3-9E4D-48A6-9132-52EF9BA9F0C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFA6BFE3-9E4D-48A6-9132-52EF9BA9F0C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72A5D12A-5AAA-4813-826E-DEFAEF3CAABF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72A5D12A-5AAA-4813-826E-DEFAEF3CAABF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72A5D12A-5AAA-4813-826E-DEFAEF3CAABF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72A5D12A-5AAA-4813-826E-DEFAEF3CAABF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13F8FF5E-4B30-4266-812A-DFAFAFB6748D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13F8FF5E-4B30-4266-812A-DFAFAFB6748D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13F8FF5E-4B30-4266-812A-DFAFAFB6748D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13F8FF5E-4B30-4266-812A-DFAFAFB6748D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3E6C6E94-F06A-4819-9266-75D534F57F49} = {61DA5FD3-222D-4049-BEB4-98A22495F48E}
+		{579613A9-D954-451D-BCCD-C0318B17B89E} = {61DA5FD3-222D-4049-BEB4-98A22495F48E}
+		{C99BEDB6-AAD2-4284-A37F-12BE497F3156} = {61DA5FD3-222D-4049-BEB4-98A22495F48E}
+		{FFA6BFE3-9E4D-48A6-9132-52EF9BA9F0C9} = {61DA5FD3-222D-4049-BEB4-98A22495F48E}
+		{72A5D12A-5AAA-4813-826E-DEFAEF3CAABF} = {61DA5FD3-222D-4049-BEB4-98A22495F48E}
+		{13F8FF5E-4B30-4266-812A-DFAFAFB6748D} = {9ADCF84D-DEFE-4E7F-B0D0-3ECA9CAA0499}
+	EndGlobalSection
+EndGlobal

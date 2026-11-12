@@ -1,0 +1,115 @@
+@page
+@model AxiomLedger.Web.Pages.Settings.TaxesModel
+@{
+    ViewData["Title"] = "Tax codes";
+    var editing = Model.EditingId is not null;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Settings/Index">Settings</a> / Tax codes</div>
+        <h1>Tax codes</h1>
+        <div class="sub">Rates applied to sales and purchases, with their liability accounts.</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Settings/Taxes">New tax code</a>
+    </div>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<div class="split">
+    <div class="card">
+        <div class="card-head"><h2>@Model.TaxCodes.Count tax code(s)</h2></div>
+        <div class="card-body tight">
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr><th>Code</th><th>Name</th><th class="num">Rate</th><th>Applies to</th>
+                        <th>Tax account</th><th>Status</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var tax in Model.TaxCodes)
+                    {
+                        <tr>
+                            <td class="mono">@tax.Code</td>
+                            <td>@tax.Name</td>
+                            <td class="num">@tax.Rate.ToString("0.####")%</td>
+                            <td class="muted">@tax.Kind@(tax.IsInclusive ? " · inclusive" : "")</td>
+                            <td class="muted">@Model.AccountName(tax.TaxAccountId)</td>
+                            <td>
+                                @if (tax.IsActive)
+                                {
+                                    <span class="badge badge-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-muted">Inactive</span>
+                                }
+                            </td>
+                            <td class="text-right">
+                                <a class="btn-link" asp-page="/Settings/Taxes" asp-route-id="@tax.Id">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>@(editing ? "Edit tax code" : "New tax code")</h2></div>
+        <div class="card-body">
+            <form method="post">
+                <input type="hidden" name="id" value="@Model.EditingId"/>
+                <div class="stack">
+                    <div class="field">
+                        <label>Code</label>
+                        <input class="input" asp-for="Input.Code" required placeholder="VAT20"/>
+                    </div>
+                    <div class="field">
+                        <label>Name</label>
+                        <input class="input" asp-for="Input.Name" required placeholder="Standard VAT 20%"/>
+                    </div>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label>Rate (%)</label>
+                            <input class="input num" asp-for="Input.Rate" inputmode="decimal"/>
+                        </div>
+                        <div class="field">
+                            <label>Applies to</label>
+                            <select class="select" asp-for="Input.Kind">
+                                <option value="@TaxKind.Sales">Sales</option>
+                                <option value="@TaxKind.Purchase">Purchases</option>
+                                <option value="@TaxKind.Both">Both</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Output tax account</label>
+                        <select class="select" asp-for="Input.TaxAccountId" required>
+                            <option value="">Select account</option>
+                            @foreach (var account in Model.Accounts)
+                            {
+                                <option value="@account.Id">@account.Display</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Input tax account</label>
+                        <select class="select" asp-for="Input.InputTaxAccountId">
+                            <option value="">Use output tax account</option>
+                            @foreach (var account in Model.Accounts)
+                            {
+                                <option value="@account.Id">@account.Display</option>
+                            }
+                        </select>
+                    </div>
+                    <label class="check"><input asp-for="Input.IsInclusive"/> <span>Prices are tax-inclusive by default</span></label>
+                    <label class="check"><input asp-for="Input.IsActive"/> <span>Active</span></label>
+                    <button class="btn btn-primary" type="submit">Save tax code</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

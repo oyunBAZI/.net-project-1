@@ -1,0 +1,109 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.GeneralLedgerModel
+@{
+    ViewData["Title"] = "General ledger";
+    var report = Model.Report;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Reports/Index">Reports</a> / General ledger</div>
+        <h1>General ledger</h1>
+        <div class="sub">@if (report is not null)
+        {
+            <span>@report.AccountCode · @report.AccountName · @Ui.Date(report.From) – @Ui.Date(report.To)</span>
+        }
+        else
+        {
+            <span>Choose an account to inspect its postings.</span>
+        }</div>
+    </div>
+    <div class="page-actions"><button class="btn btn-ghost" type="button" data-print>Print</button></div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field grow">
+        <label>Account</label>
+        <select class="select" name="accountId" required>
+            <option value="">Select an account</option>
+            @foreach (var account in Model.Accounts)
+            {
+                <option value="@account.Id" selected="@(account.Id == Model.AccountId)">@account.Display</option>
+            }
+        </select>
+    </div>
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="from" value="@Ui.DateInput(Model.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="to" value="@Ui.DateInput(Model.To)"/>
+    </div>
+    <button class="btn btn-primary" type="submit">Run report</button>
+</form>
+
+@if (report is null)
+{
+    <div class="card"><div class="empty"><h3>Pick an account</h3><p>The ledger detail shows every posting with a running balance.</p></div></div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="flex-between mb-2">
+                <div>
+                    <div class="eyebrow">@report.AccountCode</div>
+                    <h2>@report.AccountName</h2>
+                </div>
+                <div class="text-right">
+                    <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Closing balance</div>
+                    <div class="doc-amount">@Ui.Money(report.ClosingBalance, Model.CurrencyCode)</div>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="table report-table">
+                    <thead>
+                    <tr><th>Date</th><th>Entry</th><th>Description</th><th>Party</th><th class="num">Debit</th>
+                        <th class="num">Credit</th><th class="num">Balance</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr class="is-subtotal">
+                        <td colspan="6">Opening balance</td>
+                        <td class="num">@Ui.Money(report.OpeningBalance, Model.CurrencyCode)</td>
+                    </tr>
+                    @if (report.Rows.Count == 0)
+                    {
+                        <tr><td colspan="7" class="muted">No postings in this period.</td></tr>
+                    }
+                    @foreach (var row in report.Rows)
+                    {
+                        <tr>
+                            <td class="nowrap">@Ui.Date(row.Date)</td>
+                            <td><a class="row-link" asp-page="/Journal/View" asp-route-id="@row.JournalEntryId">@row.EntryNumber</a></td>
+                            <td>
+                                <strong>@row.Memo</strong>
+                                @if (!string.IsNullOrWhiteSpace(row.LineDescription))
+                                {
+                                    <div class="muted" style="font-size:11.5px">@row.LineDescription</div>
+                                }
+                            </td>
+                            <td class="muted">@(row.PartyName ?? "—")</td>
+                            <td class="num">@(row.Debit != 0 ? Ui.Money(row.Debit, Model.CurrencyCode) : "")</td>
+                            <td class="num">@(row.Credit != 0 ? Ui.Money(row.Credit, Model.CurrencyCode) : "")</td>
+                            <td class="num">@Ui.Money(row.Balance, Model.CurrencyCode)</td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="4">Movement</td>
+                        <td class="num">@Ui.Money(report.TotalDebit, Model.CurrencyCode)</td>
+                        <td class="num">@Ui.Money(report.TotalCredit, Model.CurrencyCode)</td>
+                        <td class="num">@Ui.Money(report.ClosingBalance, Model.CurrencyCode)</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+}

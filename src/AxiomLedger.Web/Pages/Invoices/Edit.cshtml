@@ -1,0 +1,187 @@
+@page "{id:guid?}"
+@model AxiomLedger.Web.Pages.Invoices.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "New invoice" : "Edit draft invoice";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Invoices/Index">Invoices</a> / @(Model.IsNew ? "New" : "Draft")</div>
+        <h1>@(Model.IsNew ? "New invoice" : "Edit draft invoice")</h1>
+        <div class="sub">Amounts are calculated in the document currency; the ledger posts in your base currency.</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Invoices/Index">Cancel</a>
+    </div>
+</div>
+
+<form method="post">
+    <div asp-validation-summary="All" class="validation-summary"></div>
+
+    <div class="card mb-2">
+        <div class="card-body">
+            <div class="form-grid three">
+                <div class="field">
+                    <label>Customer</label>
+                    <select class="select" asp-for="Input.PartyId" required>
+                        <option value="">Select customer</option>
+                        @foreach (var party in Model.Customers)
+                        {
+                            <option value="@party.Id">@party.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Document type</label>
+                    <select class="select" asp-for="Input.Kind">
+                        <option value="@InvoiceKind.Invoice">Invoice</option>
+                        <option value="@InvoiceKind.CreditNote">Credit note</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Currency</label>
+                    <select class="select" asp-for="Input.CurrencyCode">
+                        @foreach (var currency in Model.Currencies)
+                        {
+                            <option value="@currency.Code">@currency.Code — @currency.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Issue date</label>
+                    <input class="input" type="date" name="Input.IssueDate" value="@Ui.DateInput(Model.Input.IssueDate)"/>
+                </div>
+                <div class="field">
+                    <label>Due date</label>
+                    <input class="input" type="date" name="Input.DueDate" value="@Ui.DateInput(Model.Input.DueDate)"/>
+                </div>
+                <div class="field">
+                    <label>Purchase order</label>
+                    <input class="input" asp-for="Input.PurchaseOrderNumber"/>
+                </div>
+            </div>
+            <div class="form-grid mt-2">
+                <div class="field">
+                    <label>Exchange rate <span class="muted">(base per 1 @Model.Input.CurrencyCode)</span></label>
+                    <input class="input num" asp-for="Input.ExchangeRate" inputmode="decimal"
+                           placeholder="0 = use latest rate"/>
+                </div>
+                <div class="field" style="justify-content:end">
+                    <label class="check">
+                        <input asp-for="Input.TaxInclusive"/>
+                        <span>Prices include tax</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>Lines</h2></div>
+        <div class="card-body">
+            <table class="lines-editor" data-lines>
+                <thead>
+                <tr>
+                    <th class="col-desc">Description</th>
+                    <th>Revenue account</th>
+                    <th class="num col-qty">Qty</th>
+                    <th class="num col-money">Unit price</th>
+                    <th class="num col-narrow">Disc %</th>
+                    <th>Tax</th>
+                    <th class="num col-narrow">Tax %</th>
+                    <th class="num col-money">Total</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < Model.Input.Lines.Count; i++)
+                {
+                    <tr class="line-row">
+                        <td><input class="input" asp-for="Input.Lines[i].Description" placeholder="What are you billing?"/></td>
+                        <td>
+                            <select class="select" asp-for="Input.Lines[i].AccountId">
+                                <option value="">Select</option>
+                                @foreach (var account in Model.RevenueAccounts)
+                                {
+                                    <option value="@account.Id">@account.Display</option>
+                                }
+                            </select>
+                        </td>
+                        <td><input class="input num" data-qty asp-for="Input.Lines[i].Quantity" inputmode="decimal"/></td>
+                        <td><input class="input num" data-price asp-for="Input.Lines[i].UnitPrice" inputmode="decimal"/></td>
+                        <td><input class="input num" data-discount asp-for="Input.Lines[i].DiscountPercent" inputmode="decimal"/></td>
+                        <td>
+                            <select class="select" data-tax-code asp-for="Input.Lines[i].TaxCodeId">
+                                <option value="">No tax</option>
+                                @foreach (var tax in Model.TaxCodes)
+                                {
+                                    <option value="@tax.Id" data-rate="@tax.Rate.ToString("0.####")">@tax.Code (@tax.Rate.ToString("0.##")%)</option>
+                                }
+                            </select>
+                        </td>
+                        <td><input class="input num" data-tax asp-for="Input.Lines[i].TaxRate" inputmode="decimal" readonly title="From the tax code"/></td>
+                        <td class="num mono" data-line-total>@Ui.Number(Model.LineTotal(Model.Input.Lines[i]))</td>
+                        <td><button type="button" class="icon-btn line-remove" data-remove-line>✕</button></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+
+            <div class="lines-footer">
+                <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Add line</button>
+                <div class="totals">
+                    <div class="totals-row"><span>Subtotal</span><span class="mono" data-subtotal>0.00</span></div>
+                    <div class="totals-row"><span>Tax</span><span class="mono" data-total-tax>0.00</span></div>
+                    <div class="totals-row is-grand"><span>Total</span><span class="mono" data-grand-total>0.00</span></div>
+                </div>
+            </div>
+
+            <div class="form-grid mt-2">
+                <div class="field">
+                    <label>Notes <span class="muted">(shown on the invoice)</span></label>
+                    <textarea class="textarea" asp-for="Input.Notes" rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="card-foot">
+            <div class="btn-row">
+                @if (Model.Can(Permission.ManageSales))
+                {
+                    <button class="btn btn-primary" type="submit" name="Action" value="save">Save draft</button>
+                    <button class="btn btn-secondary" type="submit" name="Action" value="issue"
+                            data-confirm="Issue this invoice and post it to the ledger?">Save &amp; issue</button>
+                }
+                <a class="btn btn-ghost" asp-page="/Invoices/Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="line-template">
+    <tr class="line-row">
+        <td><input class="input" name="Input.Lines[__index__].Description" placeholder="What are you billing?"/></td>
+        <td>
+            <select class="select" name="Input.Lines[__index__].AccountId">
+                <option value="">Select</option>
+                @foreach (var account in Model.RevenueAccounts)
+                {
+                    <option value="@account.Id">@account.Display</option>
+                }
+            </select>
+        </td>
+        <td><input class="input num" data-qty name="Input.Lines[__index__].Quantity" value="1" inputmode="decimal"/></td>
+        <td><input class="input num" data-price name="Input.Lines[__index__].UnitPrice" inputmode="decimal"/></td>
+        <td><input class="input num" data-discount name="Input.Lines[__index__].DiscountPercent" value="0" inputmode="decimal"/></td>
+        <td>
+            <select class="select" data-tax-code name="Input.Lines[__index__].TaxCodeId">
+                <option value="">No tax</option>
+                @foreach (var tax in Model.TaxCodes)
+                {
+                    <option value="@tax.Id" data-rate="@tax.Rate.ToString("0.####")">@tax.Code (@tax.Rate.ToString("0.##")%)</option>
+                }
+            </select>
+        </td>
+        <td><input class="input num" data-tax name="Input.Lines[__index__].TaxRate" value="0" inputmode="decimal"/></td>
+        <td class="num mono" data-line-total>0.00</td>
+        <td><button type="button" class="icon-btn line-remove" data-remove-line>✕</button></td>
+    </tr>
+</template>

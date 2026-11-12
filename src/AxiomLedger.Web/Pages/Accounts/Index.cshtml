@@ -1,0 +1,104 @@
+@page
+@model AxiomLedger.Web.Pages.Accounts.IndexModel
+@{
+    ViewData["Title"] = "Chart of accounts";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Accounting</div>
+        <h1>Chart of accounts</h1>
+        <div class="sub">The backbone of your ledger. Balances are shown as of @Ui.Date(Model.AsOf).</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.ManageAccounts))
+        {
+            <a class="btn btn-primary" asp-page="/Accounts/Edit">New account</a>
+        }
+    </div>
+</div>
+
+<div class="tabs">
+    <a class="tab @(Model.Type is null ? "is-active" : "")" asp-page="/Accounts/Index">All accounts</a>
+    @foreach (var type in Enum.GetValues<AccountType>())
+    {
+        <a class="tab @(Model.Type == type ? "is-active" : "")" asp-page="/Accounts/Index" asp-route-type="@type">
+            @Ui.AccountType(type)@(type == AccountType.Asset ? "s" : "s")
+        </a>
+    }
+</div>
+
+<form method="get" class="filter-bar">
+    <input type="hidden" name="type" value="@Model.Type"/>
+    <div class="field grow">
+        <label>Search</label>
+        <input class="input" name="Search" value="@Model.Search" placeholder="Code or name"/>
+    </div>
+    <label class="check" style="margin-bottom:9px">
+        <input type="checkbox" name="IncludeInactive" value="true" checked="@Model.IncludeInactive"/> Include inactive
+    </label>
+    <button class="btn btn-ghost" type="submit">Apply</button>
+</form>
+
+<div class="card">
+    <div class="card-head">
+        <h2>@Model.Rows.Count account(s)</h2>
+        <span class="muted">Balances in @Model.CurrencyCode</span>
+    </div>
+    <div class="card-body tight">
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Code</th><th>Account</th><th>Type</th><th>Statement group</th>
+                    <th class="num">Balance</th><th>Flags</th><th></th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td class="mono muted">@row.Account.Code</td>
+                        <td>
+                            @if (Model.Can(Permission.ManageAccounts))
+                            {
+                                <a class="row-link" asp-page="/Accounts/Edit" asp-route-id="@row.Account.Id">@row.Account.Name</a>
+                            }
+                            else
+                            {
+                                <strong>@row.Account.Name</strong>
+                            }
+                            @if (!row.Account.IsPostable)
+                            {
+                                <span class="tag" style="margin-left:5px">summary</span>
+                            }
+                        </td>
+                        <td><span class="tag">@Ui.AccountType(row.Account.Type)</span></td>
+                        <td class="muted">@Ui.Group(row.Account.Group)</td>
+                        <td class="num">@Ui.Money(row.Balance, Model.CurrencyCode)</td>
+                        <td class="muted" style="font-size:11.5px">
+                            @if (row.Account.IsCashAccount)
+                            {
+                                <span class="tag">cash</span>
+                            }
+                            @if (row.Account.IsSystem)
+                            {
+                                <span class="tag">system</span>
+                            }
+                            @if (!row.Account.IsActive)
+                            {
+                                <span class="tag">inactive</span>
+                            }
+                        </td>
+                        <td class="text-right">
+                            @if (Model.Can(Permission.ViewReports))
+                            {
+                                <a class="btn-link" asp-page="/Reports/GeneralLedger" asp-route-accountId="@row.Account.Id">Ledger</a>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

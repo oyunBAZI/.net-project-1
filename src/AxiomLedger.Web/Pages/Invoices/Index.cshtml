@@ -1,0 +1,120 @@
+@page
+@model AxiomLedger.Web.Pages.Invoices.IndexModel
+@{
+    ViewData["Title"] = "Invoices";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Sales</div>
+        <h1>Customer invoices</h1>
+        <div class="sub">Draft, issue and track invoices. Issuing posts to the ledger immediately.</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Reports/Aging" asp-route-kind="receivable">Aging report</a>
+        @if (Model.Can(Permission.ManageSales))
+        {
+            <a class="btn btn-primary" asp-page="/Invoices/Edit">New invoice</a>
+        }
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field grow">
+        <label>Search</label>
+        <input class="input" name="Search" value="@Model.Search" placeholder="Number or customer"/>
+    </div>
+    <div class="field">
+        <label>Status</label>
+        <select class="select" name="Status">
+            <option value="">All</option>
+            @foreach (var status in Enum.GetValues<DocumentStatus>())
+            {
+                <option value="@status" selected="@(Model.Status == status)">@status</option>
+            }
+        </select>
+    </div>
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="From" value="@Ui.DateInput(Model.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="To" value="@Ui.DateInput(Model.To)"/>
+    </div>
+    <label class="check" style="margin-bottom:9px">
+        <input type="checkbox" name="Overdue" value="true" checked="@Model.Overdue"/> Only overdue
+    </label>
+    <button class="btn btn-ghost" type="submit">Apply</button>
+    <a class="btn btn-link" asp-page="/Invoices/Index">Reset</a>
+</form>
+
+<div class="card">
+    <div class="card-head">
+        <h2>@Model.Result.Total invoice(s)</h2>
+        <span class="muted">Totals exclude drafts and voided documents</span>
+    </div>
+    <div class="card-body tight">
+        @if (Model.Result.Items.Count == 0)
+        {
+            <div class="empty">
+                <h3>No invoices yet</h3>
+                <p>Invoice a customer to start tracking receivables.</p>
+                @if (Model.Can(Permission.ManageSales))
+                {
+                    <a class="btn btn-primary" asp-page="/Invoices/Edit">Create invoice</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Number</th><th>Customer</th><th>Issued</th><th>Due</th><th>Status</th>
+                        <th class="num">Total</th><th class="num">Balance</th><th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var invoice in Model.Result.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a class="row-link" asp-page="/Invoices/View" asp-route-id="@invoice.Id">
+                                    @(string.IsNullOrEmpty(invoice.Number) ? "Draft" : invoice.Number)
+                                </a>
+                                @if (invoice.Kind == InvoiceKind.CreditNote)
+                                {
+                                    <span class="tag" style="margin-left:6px">Credit note</span>
+                                }
+                            </td>
+                            <td>@invoice.PartyName</td>
+                            <td class="nowrap muted">@Ui.Date(invoice.IssueDate)</td>
+                            <td class="nowrap @(invoice.Status is DocumentStatus.Issued or DocumentStatus.PartiallyPaid && invoice.DueDate < Model.Today ? "negative" : "muted")">
+                                @Ui.Date(invoice.DueDate)
+                            </td>
+                            <td><span class="badge @Ui.Status(invoice.Status)">@invoice.Status</span></td>
+                            <td class="num">@Ui.Money(invoice.Total, invoice.CurrencyCode)</td>
+                            <td class="num">@Ui.Money(invoice.Balance, invoice.CurrencyCode)</td>
+                            <td class="text-right">
+                                <a class="btn-link" asp-page="/Invoices/View" asp-route-id="@invoice.Id">Open</a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="pager" style="padding:14px 18px">
+                <span>Page @Model.Result.Page of @Math.Max(1, Model.Result.PageCount)</span>
+                @if (Model.Result.HasPrevious)
+                {
+                    <a asp-page="/Invoices/Index" asp-route-Page="@(Model.Result.Page - 1)" asp-route-Search="@Model.Search">Previous</a>
+                }
+                @if (Model.Result.HasNext)
+                {
+                    <a asp-page="/Invoices/Index" asp-route-Page="@(Model.Result.Page + 1)" asp-route-Search="@Model.Search">Next</a>
+                }
+            </div>
+        }
+    </div>
+</div>

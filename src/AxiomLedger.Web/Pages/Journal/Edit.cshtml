@@ -1,0 +1,164 @@
+@page "{id:guid?}"
+@model AxiomLedger.Web.Pages.Journal.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "New journal" : $"Edit {Model.Number}";
+    var lines = Model.Input.Lines;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Journal/Index">Journal</a> / @(Model.IsNew ? "New entry" : Model.Number)</div>
+        <h1>@(Model.IsNew ? "New journal entry" : "Edit journal entry")</h1>
+        <div class="sub">Debits must equal credits before the entry can be posted.</div>
+    </div>
+    <div class="page-actions">
+        @if (!Model.IsNew)
+        {
+            <a class="btn btn-ghost" asp-page="/Journal/View" asp-route-id="@Model.Id">View entry</a>
+        }
+    </div>
+</div>
+
+<form method="post">
+    <div asp-validation-summary="All" class="validation-summary"></div>
+    <div class="card">
+        <div class="card-body">
+            <div class="form-grid three">
+                <div class="field">
+                    <label>Entry date</label>
+                    <input class="input" type="date" name="Input.EntryDate" value="@Ui.DateInput(Model.Input.EntryDate)"/>
+                </div>
+                <div class="field">
+                    <label>Reference</label>
+                    <input class="input" name="Input.Reference" value="@Model.Input.Reference" placeholder="ACCR-01"/>
+                </div>
+                <div class="field">
+                    <label>Currency</label>
+                    <input class="input" name="Input.CurrencyCode" value="@Model.Input.CurrencyCode" maxlength="3"/>
+                </div>
+                <div class="field span-2" style="grid-column:span 3">
+                    <label>Memo <span class="muted">(required)</span></label>
+                    <input class="input" name="Input.Memo" value="@Model.Input.Memo" required
+                           placeholder="What is this entry for?"/>
+                </div>
+            </div>
+
+            <hr/>
+
+            <table class="lines-editor" data-lines>
+                <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Description</th>
+                    <th>Party (optional)</th>
+                    <th>Department</th>
+                    <th class="num col-money">Debit</th>
+                    <th class="num col-money">Credit</th>
+                    <th class="col-narrow"></th>
+                </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < lines.Count; i++)
+                {
+                    <tr class="line-row">
+                        <td>
+                            <select class="select" asp-for="Input.Lines[i].AccountId">
+                                <option value="">Select account</option>
+                                @foreach (var account in Model.Accounts)
+                                {
+                                    <option value="@account.Id">@account.Display</option>
+                                }
+                            </select>
+                        </td>
+                        <td><input class="input" asp-for="Input.Lines[i].Description"/></td>
+                        <td>
+                            <select class="select" asp-for="Input.Lines[i].PartyId">
+                                <option value="">—</option>
+                                @foreach (var party in Model.Parties)
+                                {
+                                    <option value="@party.Id">@party.Name</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select class="select" asp-for="Input.Lines[i].DepartmentId">
+                                <option value="">—</option>
+                                @foreach (var department in Model.Departments)
+                                {
+                                    <option value="@department.Id">@department.Name</option>
+                                }
+                            </select>
+                        </td>
+                        <td><input class="input num" data-debit asp-for="Input.Lines[i].Debit" inputmode="decimal"/></td>
+                        <td><input class="input num" data-credit asp-for="Input.Lines[i].Credit" inputmode="decimal"/></td>
+                        <td>
+                            <button type="button" class="icon-btn line-remove" data-remove-line title="Remove">✕</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+
+            <div class="lines-footer">
+                <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Add line</button>
+                <div class="totals">
+                    <div class="totals-row"><span>Total debit</span><span class="mono" data-total-debit>0.00</span></div>
+                    <div class="totals-row"><span>Total credit</span><span class="mono" data-total-credit>0.00</span></div>
+                    <div class="totals-row is-grand"><span>Difference</span><span class="mono" data-difference>0.00</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="card-foot">
+            <div class="btn-row">
+                <button class="btn btn-primary" type="submit" name="Action" value="save">Save draft</button>
+                @if (Model.Can(Permission.PostJournal))
+                {
+                    <button class="btn btn-secondary" type="submit" name="Action" value="post"
+                            data-confirm="Post this journal to the ledger now?">Save &amp; post</button>
+                }
+                <a class="btn btn-ghost" asp-page="/Journal/Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="line-template">
+    <tr class="line-row">
+        <td>
+            <select class="select" name="Input.Lines[__index__].AccountId">
+                <option value="">Select account</option>
+                @foreach (var account in Model.Accounts)
+                {
+                    <option value="@account.Id">@account.Display</option>
+                }
+            </select>
+        </td>
+        <td><input class="input" name="Input.Lines[__index__].Description"/></td>
+        <td>
+            <select class="select" name="Input.Lines[__index__].PartyId">
+                <option value="">—</option>
+                @foreach (var party in Model.Parties)
+                {
+                    <option value="@party.Id">@party.Name</option>
+                }
+            </select>
+        </td>
+        <td>
+            <select class="select" name="Input.Lines[__index__].DepartmentId">
+                <option value="">—</option>
+                @foreach (var department in Model.Departments)
+                {
+                    <option value="@department.Id">@department.Name</option>
+                }
+            </select>
+        </td>
+        <td><input class="input num" data-debit name="Input.Lines[__index__].Debit" inputmode="decimal"/></td>
+        <td><input class="input num" data-credit name="Input.Lines[__index__].Credit" inputmode="decimal"/></td>
+        <td><button type="button" class="icon-btn line-remove" data-remove-line title="Remove">✕</button></td>
+    </tr>
+</template>
+
+@section Scripts {
+    <script>
+        // The journal editor relies on contiguous indexes; the shared script re-indexes on every change.
+    </script>
+}

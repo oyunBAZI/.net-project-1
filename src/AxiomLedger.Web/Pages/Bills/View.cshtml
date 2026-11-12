@@ -1,0 +1,141 @@
+@page "{id:guid}"
+@model AxiomLedger.Web.Pages.Bills.ViewModel
+@{
+    ViewData["Title"] = Model.Bill.Number.Length > 0 ? Model.Bill.Number : "Draft bill";
+    var bill = Model.Bill;
+    var currency = bill.CurrencyCode;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Bills/Index">Bills</a> / @(bill.Number.Length > 0 ? bill.Number : "Draft")</div>
+        <h1 class="flex" style="gap:10px">
+            @(bill.Number.Length > 0 ? bill.Number : "Draft bill")
+            <span class="badge @Ui.Status(bill.Status)">@bill.Status</span>
+        </h1>
+        <div class="sub">@bill.Party?.Name · @Ui.Date(bill.IssueDate)</div>
+    </div>
+    <div class="page-actions">
+        @if (bill.IsEditable && Model.Can(Permission.ManagePurchases))
+        {
+            <a class="btn btn-ghost" asp-page="/Bills/Edit" asp-route-id="@bill.Id">Edit draft</a>
+        }
+        @if (bill.Status == DocumentStatus.Draft && Model.Can(Permission.ManagePurchases))
+        {
+            <form method="post" asp-page-handler="Receive" data-confirm="Receive this bill and post it?">
+                <button class="btn btn-primary" type="submit">Receive bill</button>
+            </form>
+        }
+        @if (bill.IsOpen && Model.Can(Permission.ManagePayments))
+        {
+            <a class="btn btn-secondary" asp-page="/Payments/New" asp-route-partyId="@bill.PartyId"
+               asp-route-direction="Disbursement" asp-route-billId="@bill.Id">Pay bill</a>
+        }
+        <button class="btn btn-ghost" type="button" data-print>Print</button>
+        <a class="btn btn-ghost" asp-page="/Bills/Index">Back</a>
+    </div>
+</div>
+
+<div asp-validation-summary="All" class="validation-summary"></div>
+
+@if (bill.Status == DocumentStatus.Void)
+{
+    <div class="alert alert-danger mb-2"><strong>Voided:</strong> @bill.VoidReason</div>
+}
+
+<div class="split">
+    <div class="card">
+        <div class="card-body">
+            <div class="flex-between mb-3 flex-wrap">
+                <div>
+                    <div class="eyebrow">Vendor bill</div>
+                    <h2>@(bill.Number.Length > 0 ? bill.Number : "Draft")</h2>
+                    <div class="muted" style="font-size:12.5px">
+                        @bill.Party?.Name
+                        @if (!string.IsNullOrWhiteSpace(bill.VendorInvoiceNumber))
+                        {
+                            <span> · ref @bill.VendorInvoiceNumber</span>
+                        }
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Balance due</div>
+                    <div class="doc-amount">@Ui.Money(bill.BalanceDue, currency)</div>
+                    <div class="muted" style="font-size:12px">Due @Ui.Date(bill.DueDate)</div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr><th>Description</th><th>Account</th><th class="num">Qty</th><th class="num">Unit price</th>
+                        <th class="num">Tax</th><th class="num">Amount</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var line in bill.Lines.OrderBy(l => l.LineNumber))
+                    {
+                        <tr>
+                            <td><strong>@line.Description</strong></td>
+                            <td class="muted nowrap">@line.Account?.Code · @line.Account?.Name</td>
+                            <td class="num">@line.Quantity.ToString("0.####")</td>
+                            <td class="num">@Ui.Money(line.UnitPrice, currency)</td>
+                            <td class="num">@(line.TaxAmount > 0 ? $"{line.TaxRate:0.##}%" : "—")</td>
+                            <td class="num">@Ui.Money(line.NetAmount + line.TaxAmount, currency)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="totals mt-2">
+                <div class="totals-row"><span>Subtotal</span><span class="mono">@Ui.Money(bill.Subtotal - bill.DiscountTotal, currency)</span></div>
+                <div class="totals-row"><span>Tax</span><span class="mono">@Ui.Money(bill.TaxTotal, currency)</span></div>
+                <div class="totals-row is-grand"><span>Total</span><span class="mono">@Ui.Money(bill.Total, currency)</span></div>
+                <div class="totals-row"><span>Paid</span><span class="mono">@Ui.Money(bill.AmountPaid, currency)</span></div>
+                <div class="totals-row"><span>Balance</span><span class="mono">@Ui.Money(bill.BalanceDue, currency)</span></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(bill.Notes))
+            {
+                <hr/>
+                <div class="eyebrow">Notes</div>
+                <p class="muted" style="white-space:pre-line">@bill.Notes</p>
+            }
+        </div>
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Status</h2></div>
+            <div class="card-body">
+                <dl class="kv">
+                    <dt>Status</dt><dd><span class="badge @Ui.Status(bill.Status)">@bill.Status</span></dd>
+                    <dt>Received</dt><dd>@(bill.IssuedAt?.ToString("dd MMM yyyy HH:mm") ?? "—")</dd>
+                    <dt>Total</dt><dd>@Ui.Money(bill.Total, currency)</dd>
+                    <dt>Paid</dt><dd>@Ui.Money(bill.AmountPaid, currency)</dd>
+                </dl>
+                @if (bill.JournalEntryId is { } journalId)
+                {
+                    <hr/>
+                    <a class="btn btn-ghost btn-sm" asp-page="/Journal/View" asp-route-id="@journalId">View ledger entry</a>
+                }
+            </div>
+        </div>
+
+        @if (bill.Status != DocumentStatus.Void && Model.Can(Permission.ManagePurchases))
+        {
+            <div class="card side-card">
+                <div class="card-head"><h2>Void</h2></div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Void"
+                          data-confirm="Void this bill? A reversing journal will be posted.">
+                        <div class="field">
+                            <label>Reason</label>
+                            <input class="input" name="reason" required/>
+                        </div>
+                        <button class="btn btn-danger btn-sm mt-2" type="submit">Void bill</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

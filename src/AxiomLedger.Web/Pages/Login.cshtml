@@ -1,0 +1,87 @@
+@page
+@model AxiomLedger.Web.Pages.LoginModel
+@inject AxiomLedger.Web.Services.BrandingService Branding
+@{
+    ViewData["Title"] = "Sign in";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Sign in · @Branding.ProductName</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml"/>
+</head>
+<body class="auth-body">
+<div class="auth-shell">
+    <aside class="auth-aside">
+        <div class="brand">
+            <span class="brand-mark">A</span>
+            <span class="brand-text">
+                <strong>@Branding.ProductName</strong>
+                <small>@Branding.Tagline</small>
+            </span>
+        </div>
+        <div>
+            <h1>Every number, in its right place.</h1>
+            <p>A complete double-entry accounting suite built for the books you actually keep — from a
+                two-person shop to a multi-entity group, with the controls your auditors expect.</p>
+            <ul class="auth-features">
+                <li><span>◆</span> Multi-company ledger with a full audit trail and period locks</li>
+                <li><span>◆</span> Invoicing, bills, payments, multi-currency and bank reconciliation</li>
+                <li><span>◆</span> Trial balance, P&amp;L, balance sheet, cash flow, tax and aging reports</li>
+                <li><span>◆</span> Approval workflows and role-based access control</li>
+                <li><span>◆</span> Runs on Windows, Linux and macOS with SQLite, PostgreSQL or SQL Server</li>
+            </ul>
+        </div>
+        <div class="auth-foot">© @DateTime.UtcNow.Year @Branding.ProductName. Your data stays on your servers.</div>
+    </aside>
+
+    <main class="auth-main">
+        <div class="auth-card">
+            <div class="brand logo-mobile">
+                <span class="brand-mark">A</span>
+                <span class="brand-text">
+                    <strong>@Branding.ProductName</strong>
+                    <small>@Branding.Tagline</small>
+                </span>
+            </div>
+            <h2>Welcome back</h2>
+            <p class="sub">Sign in to continue to your books.</p>
+
+            <div class="card">
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger mb-2">@Model.ErrorMessage</div>
+                }
+                <form method="post">
+                    <div class="stack">
+                        <div class="field">
+                            <label asp-for="Email">Email address</label>
+                            <input class="input" asp-for="Email" type="email" autocomplete="username" autofocus
+                                   placeholder="you@company.com"/>
+                        </div>
+                        <div class="field">
+                            <label asp-for="Password">Password</label>
+                            <input class="input" asp-for="Password" type="password" autocomplete="current-password"
+                                   placeholder="••••••••••"/>
+                        </div>
+                        <label class="check">
+                            <input asp-for="RememberMe" type="checkbox"/>
+                            <span>Keep me signed in on this device</span>
+                        </label>
+                        <button class="btn btn-primary btn-block btn-lg" type="submit">Sign in</button>
+                    </div>
+                </form>
+            </div>
+            <div class="auth-links">
+                <span>Protected by encrypted sessions and account lockout.</span>
+                <a asp-page="/Setup">New installation?</a>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

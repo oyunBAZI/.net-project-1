@@ -1,0 +1,25 @@
+@page
+@model AxiomLedger.Web.Pages.StatusModel
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>@Model.Title · Axiom Ledger</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+</head>
+<body class="auth-body">
+<main class="auth-main" style="min-height:100vh">
+    <div class="auth-card" style="text-align:center">
+        <div style="font-size:64px;font-weight:800;color:#d7b56d;letter-spacing:-.04em">@Model.Code</div>
+        <h1 style="color:#fff;margin:8px 0">@Model.Title</h1>
+        <p style="color:#9fb3a9">@Model.Message</p>
+        <a class="btn btn-primary mt-2" href="/">Return to dashboard</a>
+    </div>
+</main>
+</body>
+</html>

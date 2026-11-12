@@ -1,0 +1,139 @@
+@page
+@model AxiomLedger.Web.Pages.Settings.PeriodsModel
+@{
+    ViewData["Title"] = "Periods & year-end";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Settings/Index">Settings</a> / Periods</div>
+        <h1>Periods &amp; year-end</h1>
+        <div class="sub">Close the month, check the books, then roll profit into retained earnings.</div>
+    </div>
+    <div class="page-actions">
+        <form method="post" asp-page-handler="CreateNext">
+            <button class="btn btn-ghost" type="submit">Create next fiscal year</button>
+        </form>
+    </div>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>Fiscal year</label>
+        <select class="select" name="year" onchange="this.form.submit()">
+            @foreach (var fiscalYear in Model.Years)
+            {
+                <option value="@fiscalYear.Year" selected="@(fiscalYear.Year == Model.Year)">
+                    @fiscalYear.Year (@Ui.Date(fiscalYear.StartDate) – @Ui.Date(fiscalYear.EndDate)) · @fiscalYear.Status
+                </option>
+            }
+        </select>
+    </div>
+    <a class="btn btn-ghost" asp-page="/Settings/Periods">Refresh</a>
+</form>
+
+<div class="split">
+    <div class="stack">
+        <div class="card">
+            <div class="card-head">
+                <h2>Accounting periods</h2>
+                @if (Model.SelectedYear is { } fy)
+                {
+                    <span class="badge @(fy.Status == FiscalYearStatus.Closed ? "badge-muted" : "badge-success")">@fy.Status</span>
+                }
+            </div>
+            <div class="card-body tight">
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                        <tr><th>Period</th><th>Start</th><th>End</th><th>Status</th><th class="num">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var period in Model.Periods)
+                        {
+                            <tr>
+                                <td><strong>@period.Label</strong></td>
+                                <td class="muted nowrap">@Ui.Date(period.StartDate)</td>
+                                <td class="muted nowrap">@Ui.Date(period.EndDate)</td>
+                                <td><span class="badge @Ui.Status(period.Status)">@period.Status</span></td>
+                                <td class="text-right nowrap">
+                                    @if (Model.Can(Permission.ClosePeriods) && period.Status != PeriodStatus.Closed)
+                                    {
+                                        <form method="post" asp-page-handler="Close" class="inline-form"
+                                              data-confirm="Close @period.Label? No entries can be posted afterwards.">
+                                            <input type="hidden" name="periodId" value="@period.Id"/>
+                                            <button class="btn-link" type="submit">Close</button>
+                                        </form>
+                                    }
+                                    else if (Model.Can(Permission.ManageCompanies) && period.Status == PeriodStatus.Closed)
+                                    {
+                                        <form method="post" asp-page-handler="Reopen" class="inline-form"
+                                              data-confirm="Reopen @period.Label?">
+                                            <input type="hidden" name="periodId" value="@period.Id"/>
+                                            <button class="btn-link" type="submit">Reopen</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h2>Year-end</h2></div>
+            <div class="card-body">
+                <p class="help">Closing the fiscal year posts a closing journal that zeroes every revenue and expense
+                    account, transfers the result to retained earnings, and locks all periods in the year.</p>
+                @if (Model.SelectedYear is { Status: FiscalYearStatus.Closed })
+                {
+                    <div class="alert alert-info mb-2">This fiscal year is closed.</div>
+                    @if (Model.Can(Permission.ManageCompanies))
+                    {
+                        <form method="post" asp-page-handler="ReopenYear" data-confirm="Reopen this fiscal year?">
+                            <button class="btn btn-ghost" type="submit">Reopen fiscal year</button>
+                        </form>
+                    }
+                }
+                else if (Model.Can(Permission.ClosePeriods))
+                {
+                    <form method="post" asp-page-handler="CloseYear"
+                          data-confirm="Close the fiscal year and post the closing entry?">
+                        <button class="btn btn-primary" type="submit">Close fiscal year @Model.Year</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card side-card">
+        <div class="card-head"><h2>Pre-close checklist</h2></div>
+        <div class="card-body">
+            <div class="list">
+                @foreach (var check in Model.Checklist)
+                {
+                    <div class="list-item">
+                        <span class="badge @(check.Status == "OK" ? "badge-success" : check.Status == "Action" ? "badge-danger" : check.Status == "Warn" ? "badge-warning" : "badge-neutral")">
+                            @check.Status
+                        </span>
+                        <div class="li-main">
+                            <strong>@check.Name</strong>
+                            <small>@check.Detail</small>
+                        </div>
+                    </div>
+                }
+                @if (Model.Checklist.Count == 0)
+                {
+                    <p class="muted">Create a fiscal year to see the checklist.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,93 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.BalanceSheetModel
+@{
+    ViewData["Title"] = "Balance sheet";
+    var report = Model.Report;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Reports/Index">Reports</a> / Balance sheet</div>
+        <h1>Balance sheet</h1>
+        <div class="sub">As at @Ui.Date(report.AsOf) · @Model.CompanyName</div>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-ghost" type="button" data-print>Print</button>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>As at</label>
+        <input class="input" type="date" name="asOf" value="@Ui.DateInput(report.AsOf)"/>
+    </div>
+    <button class="btn btn-primary" type="submit">Run report</button>
+</form>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-head"><h2>Assets</h2></div>
+        <div class="card-body tight">
+            <table class="table report-table">
+                <tbody>
+                @foreach (var group in report.Sections.Where(s => s.Key is "current-assets" or "fixed-assets" or "other-assets"))
+                {
+                    <tr class="is-section"><td colspan="2">@group.Title</td></tr>
+                    @foreach (var row in group.Rows)
+                    {
+                        <tr>
+                            <td><span class="muted mono" style="margin-right:8px">@row.Code</span>@row.Label</td>
+                            <td class="num">@Ui.Money(row.Amount, Model.CurrencyCode)</td>
+                        </tr>
+                    }
+                    <tr class="is-subtotal"><td>Total @group.Title.ToLowerInvariant()</td>
+                        <td class="num">@Ui.Money(group.Total, Model.CurrencyCode)</td></tr>
+                }
+                </tbody>
+                <tfoot>
+                <tr><td>Total assets</td><td class="num">@Ui.Money(report.TotalAssets, Model.CurrencyCode)</td></tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>Liabilities &amp; equity</h2></div>
+        <div class="card-body tight">
+            <table class="table report-table">
+                <tbody>
+                @foreach (var group in report.Sections.Where(s => s.Key is "current-liabilities" or "non-current-liabilities" or "equity"))
+                {
+                    <tr class="is-section"><td colspan="2">@group.Title</td></tr>
+                    @foreach (var row in group.Rows)
+                    {
+                        <tr>
+                            <td><span class="muted mono" style="margin-right:8px">@row.Code</span>@row.Label</td>
+                            <td class="num">@Ui.Money(row.Amount, Model.CurrencyCode)</td>
+                        </tr>
+                    }
+                    <tr class="is-subtotal"><td>Total @group.Title.ToLowerInvariant()</td>
+                        <td class="num">@Ui.Money(group.Total, Model.CurrencyCode)</td></tr>
+                }
+                </tbody>
+                <tfoot>
+                <tr><td>Total liabilities</td><td class="num">@Ui.Money(report.TotalLiabilities, Model.CurrencyCode)</td></tr>
+                <tr><td>Total equity</td><td class="num">@Ui.Money(report.TotalEquity, Model.CurrencyCode)</td></tr>
+                <tr class="is-total"><td>Total liabilities &amp; equity</td>
+                    <td class="num">@Ui.Money(report.TotalLiabilities + report.TotalEquity, Model.CurrencyCode)</td></tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (report.IsBalanced)
+{
+    <div class="alert alert-info mt-2">The balance sheet balances. Assets equal liabilities plus equity.</div>
+}
+else
+{
+    <div class="alert alert-danger mt-2">
+        The balance sheet is out of balance by @Ui.Money(report.Difference, Model.CurrencyCode).
+        Check for unposted journals or accounts with an incompatible statement group.
+    </div>
+}

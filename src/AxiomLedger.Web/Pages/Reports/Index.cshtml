@@ -1,0 +1,71 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.IndexModel
+@{
+    ViewData["Title"] = "Reports";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Accounting</div>
+        <h1>Financial reports</h1>
+        <div class="sub">Everything is derived from posted journal lines, so every report reconciles to the ledger.</div>
+    </div>
+</div>
+
+<div class="grid-3">
+    <a class="card" asp-page="/Reports/TrialBalance" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Ledger</div>
+            <h3>Trial balance</h3>
+            <p class="muted mb-0" style="font-size:13px">Opening and closing balances, debits and credits for every account.</p>
+        </div>
+    </a>
+    <a class="card" asp-page="/Reports/ProfitLoss" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Performance</div>
+            <h3>Profit &amp; loss</h3>
+            <p class="muted mb-0" style="font-size:13px">Revenue, cost of sales, operating expenses and net profit with comparatives.</p>
+        </div>
+    </a>
+    <a class="card" asp-page="/Reports/BalanceSheet" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Position</div>
+            <h3>Balance sheet</h3>
+            <p class="muted mb-0" style="font-size:13px">Assets, liabilities and equity at a point in time, including current earnings.</p>
+        </div>
+    </a>
+    <a class="card" asp-page="/Reports/CashFlow" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Liquidity</div>
+            <h3>Cash flow</h3>
+            <p class="muted mb-0" style="font-size:13px">Operating, investing and financing movements in cash and bank accounts.</p>
+        </div>
+    </a>
+    <a class="card" asp-page="/Reports/Aging" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Working capital</div>
+            <h3>Aging analysis</h3>
+            <p class="muted mb-0" style="font-size:13px">Receivables and payables split into current, 30, 60, 90 and older buckets.</p>
+        </div>
+    </a>
+    <a class="card" asp-page="/Reports/Tax" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Compliance</div>
+            <h3>Tax report</h3>
+            <p class="muted mb-0" style="font-size:13px">Output tax collected, input tax paid and the net liability by tax code.</p>
+        </div>
+    </a>
+    <a class="card" asp-page="/Reports/GeneralLedger" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Detail</div>
+            <h3>General ledger</h3>
+            <p class="muted mb-0" style="font-size:13px">Every posting on an account with a running balance and party detail.</p>
+        </div>
+    </a>
+    <a class="card" asp-page="/Journal/Index" style="text-decoration:none;color:inherit">
+        <div class="card-body">
+            <div class="eyebrow">Audit</div>
+            <h3>Journal listing</h3>
+            <p class="muted mb-0" style="font-size:13px">Search and filter all journals by date, source, status and account.</p>
+        </div>
+    </a>
+</div>

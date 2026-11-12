@@ -1,0 +1,120 @@
+@page
+@model AxiomLedger.Web.Pages.Settings.UsersModel
+@{
+    ViewData["Title"] = "Users & roles";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Settings/Index">Settings</a> / Users</div>
+        <h1>Users &amp; roles</h1>
+        <div class="sub">Role-based access per company. Changes take effect at the user's next sign-in.</div>
+    </div>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<div class="split">
+    <div class="card">
+        <div class="card-head"><h2>@Model.Members.Count member(s)</h2></div>
+        <div class="card-body tight">
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Last sign-in</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var member in Model.Members)
+                    {
+                        <tr>
+                            <td><strong>@member.DisplayName</strong></td>
+                            <td class="muted">@member.Email</td>
+                            <td>
+                                <form method="post" asp-page-handler="Role" class="flex" style="gap:6px">
+                                    <input type="hidden" name="userId" value="@member.UserId"/>
+                                    <select class="select input-sm" name="role">
+                                        @foreach (var role in Enum.GetValues<UserRole>())
+                                        {
+                                            <option value="@role" selected="@(member.Role == role)">@role</option>
+                                        }
+                                    </select>
+                                    <button class="btn btn-ghost btn-sm" type="submit">Save</button>
+                                </form>
+                            </td>
+                            <td>
+                                @if (member.IsActive)
+                                {
+                                    <span class="badge badge-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-muted">Disabled</span>
+                                }
+                            </td>
+                            <td class="muted nowrap">@(member.LastLoginAt?.ToString("dd MMM yyyy") ?? "Never")</td>
+                            <td class="text-right">
+                                <form method="post" asp-page-handler="Toggle" class="inline-form"
+                                      data-confirm="Change this member's access?">
+                                    <input type="hidden" name="userId" value="@member.UserId"/>
+                                    <input type="hidden" name="active" value="@((!member.IsActive).ToString().ToLowerInvariant())"/>
+                                    <button class="btn-link" type="submit">@(member.IsActive ? "Disable" : "Enable")</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Invite a user</h2></div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Invite">
+                    <div class="stack">
+                        <div class="field">
+                            <label>Email</label>
+                            <input class="input" asp-for="Invite.Email" type="email" required/>
+                        </div>
+                        <div class="field">
+                            <label>Display name</label>
+                            <input class="input" asp-for="Invite.DisplayName"/>
+                        </div>
+                        <div class="field">
+                            <label>Role</label>
+                            <select class="select" asp-for="Invite.Role">
+                                @foreach (var role in Enum.GetValues<UserRole>())
+                                {
+                                    <option value="@role" selected="@(role == UserRole.Accountant)">@role</option>
+                                }
+                            </select>
+                            <span class="hint">@RolePermissions.Describe(Model.Invite.Role)</span>
+                        </div>
+                        <div class="field">
+                            <label>Temporary password</label>
+                            <input class="input" asp-for="Invite.Password" type="text" required/>
+                            <span class="hint">At least 10 characters with a letter and a number. Share it securely.</span>
+                        </div>
+                        <button class="btn btn-primary" type="submit">Add member</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card side-card">
+            <div class="card-head"><h2>Roles</h2></div>
+            <div class="card-body">
+                <div class="stack" style="gap:10px">
+                    @foreach (var role in Enum.GetValues<UserRole>())
+                    {
+                        <div>
+                            <strong>@role</strong>
+                            <div class="muted" style="font-size:12px">@RolePermissions.Describe(role)</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

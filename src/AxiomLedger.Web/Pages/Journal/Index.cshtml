@@ -1,0 +1,123 @@
+@page
+@model AxiomLedger.Web.Pages.Journal.IndexModel
+@{
+    ViewData["Title"] = "Journal";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">General ledger</div>
+        <h1>Journal entries</h1>
+        <div class="sub">Every posting, with its source, approval state and audit trail.</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.CreateJournal))
+        {
+            <a class="btn btn-primary" asp-page="/Journal/Edit">New journal</a>
+        }
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field grow">
+        <label>Search</label>
+        <input class="input" name="Search" value="@Model.Search" placeholder="Number, memo or reference"/>
+    </div>
+    <div class="field">
+        <label>Status</label>
+        <select class="select" name="Status">
+            <option value="">All statuses</option>
+            @foreach (var status in Enum.GetValues<JournalStatus>())
+            {
+                <option value="@status" selected="@(Model.Status == status)">@status</option>
+            }
+        </select>
+    </div>
+    <div class="field">
+        <label>Source</label>
+        <select class="select" name="Source">
+            <option value="">All sources</option>
+            @foreach (var source in Enum.GetValues<JournalSource>())
+            {
+                <option value="@source" selected="@(Model.Source == source)">@Ui.Source(source)</option>
+            }
+        </select>
+    </div>
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="From" value="@Ui.DateInput(Model.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="To" value="@Ui.DateInput(Model.To)"/>
+    </div>
+    <button class="btn btn-ghost" type="submit">Apply</button>
+    <a class="btn btn-link" asp-page="/Journal/Index">Reset</a>
+</form>
+
+<div class="card">
+    <div class="card-head">
+        <h2>@Model.Result.Total entries</h2>
+        @if (Model.PendingApprovals > 0)
+        {
+            <span class="badge badge-warning">@Model.PendingApprovals awaiting approval</span>
+        }
+    </div>
+    <div class="card-body tight">
+        @if (Model.Result.Items.Count == 0)
+        {
+            <div class="empty">
+                <h3>No journal entries match</h3>
+                <p>Adjust the filters, or record a new journal.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Number</th><th>Date</th><th>Memo</th><th>Source</th><th>Status</th>
+                        <th class="num">Debit</th><th class="num">Credit</th><th>Prepared by</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var entry in Model.Result.Items)
+                    {
+                        <tr>
+                            <td><a class="row-link" asp-page="/Journal/View" asp-route-id="@entry.Id">@entry.Number</a></td>
+                            <td class="nowrap">@Ui.Date(entry.Date)</td>
+                            <td>
+                                @entry.Memo
+                                @if (!string.IsNullOrWhiteSpace(entry.Reference))
+                                {
+                                    <div class="muted" style="font-size:11.5px">@entry.Reference</div>
+                                }
+                            </td>
+                            <td><span class="tag">@Ui.Source(entry.Source)</span></td>
+                            <td><span class="badge @Ui.Status(entry.Status)">@entry.Status</span></td>
+                            <td class="num">@Ui.Money(entry.TotalDebit)</td>
+                            <td class="num">@Ui.Money(entry.TotalDebit)</td>
+                            <td class="muted">@(entry.CreatedByEmail ?? "system")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="pager" style="padding:14px 18px">
+                <span>Page @Model.Result.Page of @Math.Max(1, Model.Result.PageCount)</span>
+                @if (Model.Result.HasPrevious)
+                {
+                    <a asp-page="/Journal/Index" asp-route-Page="@(Model.Result.Page - 1)" asp-route-Search="@Model.Search"
+                       asp-route-Status="@Model.Status" asp-route-Source="@Model.Source"
+                       asp-route-From="@Model.From?.ToString("yyyy-MM-dd")" asp-route-To="@Model.To?.ToString("yyyy-MM-dd")">Previous</a>
+                }
+                @if (Model.Result.HasNext)
+                {
+                    <a asp-page="/Journal/Index" asp-route-Page="@(Model.Result.Page + 1)" asp-route-Search="@Model.Search"
+                       asp-route-Status="@Model.Status" asp-route-Source="@Model.Source"
+                       asp-route-From="@Model.From?.ToString("yyyy-MM-dd")" asp-route-To="@Model.To?.ToString("yyyy-MM-dd")">Next</a>
+                }
+            </div>
+        }
+    </div>
+</div>

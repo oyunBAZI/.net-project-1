@@ -1,0 +1,243 @@
+@page
+@model AxiomLedger.Web.Pages.Banking.IndexModel
+@{
+    ViewData["Title"] = "Banking";
+    var bank = Model.SelectedBank;
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Money</div>
+        <h1>Banking &amp; reconciliation</h1>
+        <div class="sub">Import statements, match them to the ledger, and lock the month.</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.ManageBanking))
+        {
+            <a class="btn btn-ghost" asp-page="/Banking/Account">Add bank account</a>
+        }
+        @if (bank is not null)
+        {
+            <a class="btn btn-primary" asp-page="/Banking/Reconcile" asp-route-bankId="@bank.Id">Reconcile</a>
+        }
+    </div>
+</div>
+
+<div asp-validation-summary="All" class="validation-summary"></div>
+
+@if (Model.Accounts.Count == 0)
+{
+    <div class="card">
+        <div class="empty">
+            <h3>No bank accounts yet</h3>
+            <p>Add the bank accounts you want to import statements for and reconcile.</p>
+            <a class="btn btn-primary" asp-page="/Banking/Account">Add bank account</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="grid-3 mb-3">
+        @foreach (var account in Model.Accounts)
+        {
+            <a class="card" asp-page="/Banking/Index" asp-route-bankId="@account.Id"
+               style="text-decoration:none;color:inherit;border-color:@(account.Id == Model.SelectedBank?.Id ? "var(--accent)" : "var(--line)")">
+                <div class="card-body">
+                    <div class="flex-between">
+                        <div>
+                            <div class="eyebrow">@(account.BankName ?? "Bank account")</div>
+                            <h3>@account.Name</h3>
+                            <div class="muted" style="font-size:12px">@account.AccountCode · @account.CurrencyCode</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="stat-value" style="font-size:20px">@Ui.Money(account.LedgerBalance, account.CurrencyCode)</div>
+                            @if (account.UnreconciledLines > 0)
+                            {
+                                <span class="badge badge-warning">@account.UnreconciledLines unmatched</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-success">Reconciled</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+
+    @if (bank is not null)
+    {
+        <div class="split">
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <h2>@bank.Name statement</h2>
+                        <small class="muted">@(bank.BankName ?? "") @bank.AccountNumber</small>
+                    </div>
+                    <div class="btn-row">
+                        <form method="post" asp-page-handler="AutoMatch" asp-route-bankId="@bank.Id">
+                            <input type="hidden" name="bankId" value="@bank.Id"/>
+                            <button class="btn btn-ghost btn-sm" type="submit">Auto-match</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body tight">
+                    @if (Model.Lines.Count == 0)
+                    {
+                        <div class="empty" style="padding:34px">
+                            <h3>No statement lines</h3>
+                            <p>Import a CSV statement using the panel on the right.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-wrap">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>Date</th><th>Description</th><th class="num">Out</th><th class="num">In</th>
+                                    <th>Status</th><th>Matched to</th><th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var line in Model.Lines)
+                                {
+                                    <tr>
+                                        <td class="nowrap muted">@Ui.Date(line.Date)</td>
+                                        <td>
+                                            <strong>@(line.Description ?? "—")</strong>
+                                            @if (!string.IsNullOrWhiteSpace(line.Reference))
+                                            {
+                                                <div class="muted" style="font-size:11.5px">@line.Reference</div>
+                                            }
+                                            @if (line.Status == BankLineStatus.Unmatched && Model.Candidates.TryGetValue(line.Id, out var candidates) && candidates.Count > 0)
+                                            {
+                                                <form method="post" asp-page-handler="Match" class="flex mt-1" style="gap:6px">
+                                                    <input type="hidden" name="lineId" value="@line.Id"/>
+                                                    <select class="select input-sm" name="journalLineId" style="max-width:330px">
+                                                        @foreach (var candidate in candidates)
+                                                        {
+                                                            <option value="@candidate.JournalLineId">
+                                                                @candidate.EntryNumber · @Ui.Date(candidate.Date) · @candidate.Memo (@candidate.Amount.ToString("N2"))
+                                                            </option>
+                                                        }
+                                                    </select>
+                                                    <button class="btn btn-ghost btn-sm" type="submit">Match</button>
+                                                </form>
+                                            }
+                                        </td>
+                                        <td class="num negative">@(line.Debit != 0 ? Ui.Money(line.Debit, bank.CurrencyCode) : "")</td>
+                                        <td class="num positive">@(line.Credit != 0 ? Ui.Money(line.Credit, bank.CurrencyCode) : "")</td>
+                                        <td>
+                                            <span class="badge @(line.Status == BankLineStatus.Matched ? "badge-success" : line.Status == BankLineStatus.Excluded ? "badge-muted" : "badge-warning")">
+                                                @line.Status
+                                            </span>
+                                        </td>
+                                        <td class="muted">@(line.MatchedEntryNumber ?? "—")</td>
+                                        <td class="text-right nowrap">
+                                            @if (line.Status == BankLineStatus.Matched)
+                                            {
+                                                <form method="post" asp-page-handler="Unmatch" class="inline-form">
+                                                    <input type="hidden" name="lineId" value="@line.Id"/>
+                                                    <button class="btn-link" type="submit">Unmatch</button>
+                                                </form>
+                                            }
+                                            else if (line.Status == BankLineStatus.Unmatched)
+                                            {
+                                                <form method="post" asp-page-handler="Exclude" class="inline-form">
+                                                    <input type="hidden" name="lineId" value="@line.Id"/>
+                                                    <input type="hidden" name="excluded" value="true"/>
+                                                    <button class="btn-link" type="submit">Exclude</button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" asp-page-handler="Exclude" class="inline-form">
+                                                    <input type="hidden" name="lineId" value="@line.Id"/>
+                                                    <input type="hidden" name="excluded" value="false"/>
+                                                    <button class="btn-link" type="submit">Include</button>
+                                                </form>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div>
+                <div class="card side-card">
+                    <div class="card-head"><h2>Import statement</h2></div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="Import" asp-route-bankId="@bank.Id" enctype="multipart/form-data">
+                            <div class="field">
+                                <label>CSV file</label>
+                                <input class="input" type="file" name="StatementFile" accept=".csv,text/csv" required/>
+                                <span class="hint">Columns: Date, Description, Amount (or Debit/Credit), Reference,
+                                    Balance. Amount negative = money out.</span>
+                            </div>
+                            <button class="btn btn-primary btn-block mt-2" type="submit">Import &amp; auto-match</button>
+                        </form>
+                        @if (Model.ImportResult is not null)
+                        {
+                            <div class="alert alert-info mt-2" style="font-size:12.5px">
+                                Imported @Model.ImportResult.Imported ·
+                                duplicates @Model.ImportResult.Duplicates ·
+                                skipped @Model.ImportResult.Skipped.
+                                @if (Model.ImportResult.Errors.Count > 0)
+                                {
+                                    <ul style="margin:6px 0 0;padding-left:16px">
+                                        @foreach (var error in Model.ImportResult.Errors)
+                                        {
+                                            <li>@error</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        }
+                        <hr/>
+                        <p class="help">Statement lines never post to the ledger. Match them to existing ledger lines,
+                            or create a journal for bank fees and interest.</p>
+                    </div>
+                </div>
+
+                <div class="card side-card">
+                    <div class="card-head"><h2>Create entry from line</h2></div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="CreateEntry">
+                            <input type="hidden" name="bankId" value="@bank.Id"/>
+                            <div class="field">
+                                <label>Statement line</label>
+                                <select class="select" name="lineId" required>
+                                    <option value="">Select unmatched line</option>
+                                    @foreach (var line in Model.Lines.Where(l => l.Status == BankLineStatus.Unmatched))
+                                    {
+                                        <option value="@line.Id">@Ui.Date(line.Date) · @line.Description · @line.Debit.ToString("N2")/@line.Credit.ToString("N2")</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field mt-1">
+                                <label>Post the other side to</label>
+                                <select class="select" name="contraAccountId" required>
+                                    <option value="">Select account</option>
+                                    @foreach (var account in Model.Accounts2)
+                                    {
+                                        <option value="@account.Id">@account.Display</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field mt-1">
+                                <label>Description</label>
+                                <input class="input" name="description" placeholder="Bank fees"/>
+                            </div>
+                            <button class="btn btn-ghost btn-block mt-2" type="submit">Post journal &amp; match</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

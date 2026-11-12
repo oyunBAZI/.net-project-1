@@ -1,0 +1,102 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.TaxModel
+@{
+    ViewData["Title"] = "Tax report";
+    var report = Model.Report;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Reports/Index">Reports</a> / Tax</div>
+        <h1>Tax report</h1>
+        <div class="sub">@Ui.Date(report.From) – @Ui.Date(report.To) · @Model.CompanyName</div>
+    </div>
+    <div class="page-actions"><button class="btn btn-ghost" type="button" data-print>Print</button></div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="from" value="@Ui.DateInput(report.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="to" value="@Ui.DateInput(report.To)"/>
+    </div>
+    <button class="btn btn-primary" type="submit">Run report</button>
+</form>
+
+<div class="stat-grid">
+    <div class="stat is-blue">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Output tax collected</div>
+        <div class="stat-value">@Ui.Money(report.SalesTaxCollected, Model.CurrencyCode)</div>
+    </div>
+    <div class="stat">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Input tax paid</div>
+        <div class="stat-value">@Ui.Money(report.PurchaseTaxPaid, Model.CurrencyCode)</div>
+    </div>
+    <div class="stat @(report.NetLiability > 0 ? "is-warn" : "")">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Net tax liability</div>
+        <div class="stat-value">@Ui.Money(report.NetLiability, Model.CurrencyCode)</div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-head"><h2>By tax code</h2></div>
+        <div class="card-body tight">
+            <table class="table report-table">
+                <thead>
+                <tr><th>Code</th><th>Tax</th><th class="num">Rate</th><th class="num">Collected</th>
+                    <th class="num">Paid</th><th class="num">Net</th></tr>
+                </thead>
+                <tbody>
+                @if (report.Summary.Count == 0)
+                {
+                    <tr><td colspan="6" class="muted">No tax-coded transactions in this period.</td></tr>
+                }
+                @foreach (var row in report.Summary)
+                {
+                    <tr>
+                        <td class="mono">@row.Code</td>
+                        <td>@row.Name</td>
+                        <td class="num">@row.Rate.ToString("0.##")%</td>
+                        <td class="num">@Ui.Money(row.SalesTaxCollected, Model.CurrencyCode)</td>
+                        <td class="num">@Ui.Money(row.PurchaseTaxPaid, Model.CurrencyCode)</td>
+                        <td class="num">@Ui.Money(row.NetLiability, Model.CurrencyCode)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>Monthly detail</h2></div>
+        <div class="card-body tight">
+            <table class="table report-table">
+                <thead>
+                <tr><th>Period</th><th>Code</th><th class="num">Rate</th><th class="num">Taxable</th><th class="num">Tax</th></tr>
+                </thead>
+                <tbody>
+                @if (report.Detail.Count == 0)
+                {
+                    <tr><td colspan="5" class="muted">Nothing to report.</td></tr>
+                }
+                @foreach (var row in report.Detail)
+                {
+                    <tr>
+                        <td class="nowrap">@row.Period</td>
+                        <td class="mono">@row.TaxCode</td>
+                        <td class="num">@row.Rate.ToString("0.##")%</td>
+                        <td class="num">@Ui.Money(row.TaxableAmount, Model.CurrencyCode)</td>
+                        <td class="num">@Ui.Money(row.TaxAmount, Model.CurrencyCode)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,47 @@
+# Build output
+bin/
+obj/
+out/
+publish/
+artifacts/
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Runtime data
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+axiomledger.db*
+
+# Logs and diagnostics
+logs/
+*.log
+*.trx
+TestResults/
+coverage*.xml
+coverage*.json
+*.coverage
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+
+# Node (tooling only, if added later)
+node_modules/

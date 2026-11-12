@@ -1,0 +1,93 @@
+@page
+@model AxiomLedger.Web.Pages.Bills.IndexModel
+@{
+    ViewData["Title"] = "Bills";
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Purchases</div>
+        <h1>Vendor bills</h1>
+        <div class="sub">Capture bills, record them in the ledger and track what you owe.</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Reports/Aging" asp-route-kind="payable">Aging report</a>
+        @if (Model.Can(Permission.ManagePurchases))
+        {
+            <a class="btn btn-primary" asp-page="/Bills/Edit">New bill</a>
+        }
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field grow">
+        <label>Search</label>
+        <input class="input" name="Search" value="@Model.Search" placeholder="Number, vendor or vendor reference"/>
+    </div>
+    <div class="field">
+        <label>Status</label>
+        <select class="select" name="Status">
+            <option value="">All</option>
+            @foreach (var status in Enum.GetValues<DocumentStatus>())
+            {
+                <option value="@status" selected="@(Model.Status == status)">@status</option>
+            }
+        </select>
+    </div>
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="From" value="@Ui.DateInput(Model.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="To" value="@Ui.DateInput(Model.To)"/>
+    </div>
+    <button class="btn btn-ghost" type="submit">Apply</button>
+    <a class="btn btn-link" asp-page="/Bills/Index">Reset</a>
+</form>
+
+<div class="card">
+    <div class="card-head"><h2>@Model.Result.Total bill(s)</h2></div>
+    <div class="card-body tight">
+        @if (Model.Result.Items.Count == 0)
+        {
+            <div class="empty">
+                <h3>No bills yet</h3>
+                <p>Record a vendor bill to start tracking payables.</p>
+                @if (Model.Can(Permission.ManagePurchases))
+                {
+                    <a class="btn btn-primary" asp-page="/Bills/Edit">Create bill</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Number</th><th>Vendor</th><th>Vendor ref.</th><th>Bill date</th><th>Due</th>
+                        <th>Status</th><th class="num">Total</th><th class="num">Balance</th><th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var bill in Model.Result.Items)
+                    {
+                        <tr>
+                            <td><a class="row-link" asp-page="/Bills/View" asp-route-id="@bill.Id">
+                                @(string.IsNullOrEmpty(bill.Number) ? "Draft" : bill.Number)</a></td>
+                            <td>@bill.VendorName</td>
+                            <td class="muted">@(bill.VendorInvoiceNumber ?? "—")</td>
+                            <td class="muted nowrap">@Ui.Date(bill.BillDate)</td>
+                            <td class="muted nowrap">@Ui.Date(bill.DueDate)</td>
+                            <td><span class="badge @Ui.Status(bill.Status)">@bill.Status</span></td>
+                            <td class="num">@Ui.Money(bill.Total, bill.CurrencyCode)</td>
+                            <td class="num">@Ui.Money(bill.Balance, bill.CurrencyCode)</td>
+                            <td class="text-right"><a class="btn-link" asp-page="/Bills/View" asp-route-id="@bill.Id">Open</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

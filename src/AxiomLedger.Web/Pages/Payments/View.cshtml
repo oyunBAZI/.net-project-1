@@ -1,0 +1,141 @@
+@page "{id:guid}"
+@model AxiomLedger.Web.Pages.Payments.ViewModel
+@{
+    ViewData["Title"] = Model.Payment.Number;
+    var payment = Model.Payment;
+    var currency = payment.CurrencyCode;
+    var isReceipt = payment.Direction == PaymentDirection.Receipt;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Payments/Index">Payments</a> / @payment.Number</div>
+        <h1 class="flex" style="gap:10px">
+            @payment.Number
+            <span class="badge @Ui.Status(payment.Status)">@payment.Status</span>
+        </h1>
+        <div class="sub">@(isReceipt ? "Receipt from" : "Payment to") @(payment.Party?.Name ?? "—") ·
+            @Ui.Date(payment.PaymentDate)</div>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-ghost" type="button" data-print>Print</button>
+        <a class="btn btn-ghost" asp-page="/Payments/Index">Back</a>
+    </div>
+</div>
+
+<div asp-validation-summary="All" class="validation-summary"></div>
+
+<div class="split">
+    <div class="stack">
+        <div class="card">
+            <div class="card-body">
+                <div class="flex-between flex-wrap">
+                    <div>
+                        <div class="eyebrow">@(isReceipt ? "Money received" : "Money paid")</div>
+                        <div class="doc-amount">@Ui.Money(payment.Amount, currency)</div>
+                        <div class="muted">@payment.Method · @(payment.BankAccount?.Name ?? "Cash")</div>
+                    </div>
+                    <dl class="kv" style="min-width:240px">
+                        <dt>Date</dt><dd>@Ui.Date(payment.PaymentDate)</dd>
+                        <dt>Reference</dt><dd>@(payment.Reference ?? "—")</dd>
+                        <dt>Allocated</dt><dd>@Ui.Money(payment.AllocatedAmount, currency)</dd>
+                        <dt>Unapplied</dt><dd>@Ui.Money(payment.UnallocatedAmount, currency)</dd>
+                    </dl>
+                </div>
+                @if (payment.JournalEntryId is { } journalId)
+                {
+                    <hr/>
+                    <a class="btn btn-ghost btn-sm" asp-page="/Journal/View" asp-route-id="@journalId">View ledger entry</a>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h2>Allocations</h2></div>
+            <div class="card-body tight">
+                @if (payment.Allocations.Count == 0)
+                {
+                    <div class="empty" style="padding:26px"><p>Not allocated to any document.</p></div>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead>
+                            <tr><th>Document</th><th>Date</th><th>Status</th><th class="num">Amount</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var allocation in payment.Allocations)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (allocation.SalesInvoice is not null)
+                                        {
+                                            <a class="row-link" asp-page="/Invoices/View" asp-route-id="@allocation.SalesInvoiceId">@allocation.SalesInvoice.Number</a>
+                                        }
+                                        else if (allocation.Bill is not null)
+                                        {
+                                            <a class="row-link" asp-page="/Bills/View" asp-route-id="@allocation.BillId">@allocation.Bill.Number</a>
+                                        }
+                                    </td>
+                                    <td class="muted">@Ui.Date(allocation.SalesInvoice?.IssueDate ?? allocation.Bill?.IssueDate ?? default)</td>
+                                    <td><span class="badge @Ui.Status(allocation.SalesInvoice?.Status ?? allocation.Bill?.Status ?? DocumentStatus.Issued)">
+                                        @(allocation.SalesInvoice?.Status.ToString() ?? allocation.Bill?.Status.ToString())</span></td>
+                                    <td class="num">@Ui.Money(allocation.Amount, currency)</td>
+                                    <td class="text-right">
+                                        @if (allocation.SalesInvoice is not null)
+                                        {
+                                            <a class="btn-link" asp-page="/Invoices/View" asp-route-id="@allocation.SalesInvoiceId">Open</a>
+                                        }
+                                        else if (allocation.Bill is not null)
+                                        {
+                                            <a class="btn-link" asp-page="/Bills/View" asp-route-id="@allocation.BillId">Open</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Details</h2></div>
+            <div class="card-body">
+                <dl class="kv">
+                    <dt>Type</dt><dd>@payment.Direction</dd>
+                    <dt>Party</dt><dd>@(payment.Party?.Name ?? "—")</dd>
+                    <dt>Currency</dt><dd>@currency</dd>
+                    <dt>Exchange rate</dt><dd>@payment.ExchangeRate.ToString("0.####")</dd>
+                    <dt>Posted</dt><dd>@(payment.PostedAt?.ToString("dd MMM yyyy HH:mm") ?? "—")</dd>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(payment.Notes))
+                {
+                    <hr/>
+                    <div class="eyebrow">Notes</div>
+                    <p class="muted" style="white-space:pre-line">@payment.Notes</p>
+                }
+            </div>
+        </div>
+
+        @if (payment.Status != DocumentStatus.Void && Model.Can(Permission.ManagePayments))
+        {
+            <div class="card side-card">
+                <div class="card-head"><h2>Void</h2></div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Void"
+                          data-confirm="Void this payment? The ledger entry will be reversed and invoice balances restored.">
+                        <div class="field">
+                            <label>Reason</label>
+                            <input class="input" name="reason" required/>
+                        </div>
+                        <button class="btn btn-danger btn-sm mt-2" type="submit">Void payment</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

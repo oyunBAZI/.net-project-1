@@ -1,0 +1,94 @@
+@page
+@model AxiomLedger.Web.Pages.Payments.IndexModel
+@{
+    ViewData["Title"] = "Payments";
+    var receipt = Model.Direction == PaymentDirection.Receipt;
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Money</div>
+        <h1>Payments &amp; receipts</h1>
+        <div class="sub">Money in from customers, money out to vendors. Unallocated amounts stay as credits.</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.ManagePayments))
+        {
+            <a class="btn btn-primary" asp-page="/Payments/New">Record payment</a>
+        }
+    </div>
+</div>
+
+<div class="tabs">
+    <a class="tab @(Model.Direction is null ? "is-active" : "")" asp-page="/Payments/Index">All</a>
+    <a class="tab @(Model.Direction == PaymentDirection.Receipt ? "is-active" : "")"
+       asp-page="/Payments/Index" asp-route-Direction="Receipt">Receipts</a>
+    <a class="tab @(Model.Direction == PaymentDirection.Disbursement ? "is-active" : "")"
+       asp-page="/Payments/Index" asp-route-Direction="Disbursement">Payments</a>
+</div>
+
+<form method="get" class="filter-bar">
+    <input type="hidden" name="Direction" value="@Model.Direction"/>
+    <div class="field grow">
+        <label>Search</label>
+        <input class="input" name="Search" value="@Model.Search" placeholder="Number or party"/>
+    </div>
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="From" value="@Ui.DateInput(Model.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="To" value="@Ui.DateInput(Model.To)"/>
+    </div>
+    <button class="btn btn-ghost" type="submit">Apply</button>
+</form>
+
+<div class="card">
+    <div class="card-head"><h2>@Model.Result.Total payment(s)</h2></div>
+    <div class="card-body tight">
+        @if (Model.Result.Items.Count == 0)
+        {
+            <div class="empty">
+                <h3>No payments recorded</h3>
+                <p>Record a customer receipt or a vendor payment.</p>
+                @if (Model.Can(Permission.ManagePayments))
+                {
+                    <a class="btn btn-primary" asp-page="/Payments/New">Record payment</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Number</th><th>Party</th><th>Date</th><th>Type</th><th>Method</th>
+                        <th>Account</th><th class="num">Amount</th><th class="num">Unapplied</th><th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var payment in Model.Result.Items)
+                    {
+                        <tr>
+                            <td><a class="row-link" asp-page="/Payments/View" asp-route-id="@payment.Id">@payment.Number</a></td>
+                            <td>@(payment.PartyName ?? "—")</td>
+                            <td class="muted nowrap">@Ui.Date(payment.PaymentDate)</td>
+                            <td>
+                                <span class="badge @(payment.Direction == PaymentDirection.Receipt ? "badge-success" : "badge-info")">
+                                    @(payment.Direction == PaymentDirection.Receipt ? "Receipt" : "Payment")
+                                </span>
+                            </td>
+                            <td class="muted">@payment.Method</td>
+                            <td class="muted">@(payment.BankAccountName ?? "Cash")</td>
+                            <td class="num">@Ui.Money(payment.Amount, payment.CurrencyCode)</td>
+                            <td class="num @(payment.Unallocated > 0 ? "negative" : "")">@Ui.Money(payment.Unallocated, payment.CurrencyCode)</td>
+                            <td class="text-right"><a class="btn-link" asp-page="/Payments/View" asp-route-id="@payment.Id">Open</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

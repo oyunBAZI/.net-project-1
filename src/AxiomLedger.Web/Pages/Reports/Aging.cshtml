@@ -1,0 +1,79 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.AgingModel
+@{
+    ViewData["Title"] = "Aging analysis";
+    var report = Model.Report;
+    var receivable = Model.Kind == AxiomLedger.Web.Pages.Reports.AgingModel.AgingKind.Receivable;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Reports/Index">Reports</a> / Aging</div>
+        <h1>@(receivable ? "Receivables" : "Payables") aging</h1>
+        <div class="sub">As at @Ui.Date(report.AsOf) · @Model.CompanyName</div>
+    </div>
+    <div class="page-actions"><button class="btn btn-ghost" type="button" data-print>Print</button></div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>Report</label>
+        <select class="select" name="kind">
+            <option value="receivable" selected="@receivable">Receivables</option>
+            <option value="payable" selected="@(!receivable)">Payables</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>As at</label>
+        <input class="input" type="date" name="asOf" value="@Ui.DateInput(report.AsOf)"/>
+    </div>
+    <button class="btn btn-primary" type="submit">Run report</button>
+</form>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-wrap">
+            <table class="table report-table">
+                <thead>
+                <tr>
+                    <th>Party</th><th>Current</th><th class="num">1–30 days</th><th class="num">31–60 days</th>
+                    <th class="num">61–90 days</th><th class="num">90+ days</th><th class="num">Total</th>
+                    <th class="num">Unapplied credits</th>
+                </tr>
+                </thead>
+                <tbody>
+                @if (report.Rows.Count == 0)
+                {
+                    <tr><td colspan="8" class="muted">Nothing outstanding. Excellent.</td></tr>
+                }
+                @foreach (var row in report.Rows)
+                {
+                    <tr>
+                        <td><strong>@row.Name</strong> <span class="muted mono" style="font-size:11.5px">@row.Code</span></td>
+                        <td class="num">@(row.Current != 0 ? Ui.Money(row.Current, Model.CurrencyCode) : "—")</td>
+                        <td class="num">@(row.Days1To30 != 0 ? Ui.Money(row.Days1To30, Model.CurrencyCode) : "—")</td>
+                        <td class="num">@(row.Days31To60 != 0 ? Ui.Money(row.Days31To60, Model.CurrencyCode) : "—")</td>
+                        <td class="num">@(row.Days61To90 != 0 ? Ui.Money(row.Days61To90, Model.CurrencyCode) : "—")</td>
+                        <td class="num @(row.Over90 > 0 ? "negative" : "")">@(row.Over90 != 0 ? Ui.Money(row.Over90, Model.CurrencyCode) : "—")</td>
+                        <td class="num strong">@Ui.Money(row.Total, Model.CurrencyCode)</td>
+                        <td class="num">@(row.UnappliedCredits != 0 ? Ui.Money(row.UnappliedCredits, Model.CurrencyCode) : "—")</td>
+                    </tr>
+                }
+                </tbody>
+                <tfoot>
+                <tr>
+                    <td>Total</td>
+                    <td class="num">@Ui.Money(report.Current, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.Days1To30, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.Days31To60, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.Days61To90, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.Over90, Model.CurrencyCode)</td>
+                    <td class="num">@Ui.Money(report.Total, Model.CurrencyCode)</td>
+                    <td></td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+        <p class="help mt-2">Balances are converted to @Model.CurrencyCode at each document's exchange rate.
+            Unapplied credits are payments that have not been allocated to a document.</p>
+    </div>
+</div>

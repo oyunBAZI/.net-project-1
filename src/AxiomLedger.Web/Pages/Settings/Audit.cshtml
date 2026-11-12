@@ -1,0 +1,74 @@
+@page
+@model AxiomLedger.Web.Pages.Settings.AuditModel
+@{
+    ViewData["Title"] = "Audit trail";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Settings/Index">Settings</a> / Audit</div>
+        <h1>Audit trail</h1>
+        <div class="sub">An append-only record of every action taken in this company.</div>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field grow">
+        <label>Search</label>
+        <input class="input" name="search" value="@Model.Search" placeholder="Action, entity or user"/>
+    </div>
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="from" value="@Ui.DateInput(Model.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="to" value="@Ui.DateInput(Model.To)"/>
+    </div>
+    <button class="btn btn-ghost" type="submit">Apply</button>
+</form>
+
+<div class="card">
+    <div class="card-head">
+        <h2>@Model.Total events</h2>
+        <span class="muted">Page @Model.Page of @Math.Max(1, Model.PageCount)</span>
+    </div>
+    <div class="card-body tight">
+        @if (Model.Events.Count == 0)
+        {
+            <div class="empty"><h3>No audit events</h3><p>Actions will appear here as the books are used.</p></div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr><th>When</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var entry in Model.Events)
+                    {
+                        <tr>
+                            <td class="nowrap muted">@entry.OccurredAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                            <td>@(entry.UserEmail ?? "system")</td>
+                            <td><span class="tag">@entry.Action</span></td>
+                            <td class="muted">@entry.EntityType@(string.IsNullOrEmpty(entry.EntityId) ? "" : $" · {entry.EntityId[..Math.Min(8, entry.EntityId.Length)]}")</td>
+                            <td>@(entry.Details ?? "—")</td>
+                            <td class="muted mono" style="font-size:11.5px">@(entry.IpAddress ?? "—")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="pager" style="padding:14px 18px">
+                @if (Model.Page > 1)
+                {
+                    <a asp-page="/Settings/Audit" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search">Previous</a>
+                }
+                @if (Model.Page < Model.PageCount)
+                {
+                    <a asp-page="/Settings/Audit" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search">Next</a>
+                }
+            </div>
+        }
+    </div>
+</div>

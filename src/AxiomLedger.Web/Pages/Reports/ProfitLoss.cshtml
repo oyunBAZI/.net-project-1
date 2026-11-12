@@ -1,0 +1,96 @@
+@page
+@model AxiomLedger.Web.Pages.Reports.ProfitLossModel
+@{
+    ViewData["Title"] = "Profit & loss";
+    var report = Model.Report;
+    var comparative = report.Comparative;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Reports/Index">Reports</a> / Profit &amp; loss</div>
+        <h1>Profit &amp; loss</h1>
+        <div class="sub">@Ui.Date(report.From) – @Ui.Date(report.To) · @Model.CompanyName</div>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" asp-page="/Reports/ProfitLoss" asp-page-handler="Csv"
+           asp-route-from="@Ui.DateInput(report.From)" asp-route-to="@Ui.DateInput(report.To)">Export CSV</a>
+        <button class="btn btn-ghost" type="button" data-print>Print</button>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="from" value="@Ui.DateInput(report.From)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="to" value="@Ui.DateInput(report.To)"/>
+    </div>
+    <label class="check" style="margin-bottom:9px">
+        <input type="checkbox" name="compare" value="true" checked="@Model.Compare"/> Compare previous period
+    </label>
+    <button class="btn btn-primary" type="submit">Run report</button>
+</form>
+
+<div class="card">
+    <div class="card-body">
+        <div class="report-title mb-2">
+            <h1>@Model.CompanyName</h1>
+            <div class="meta">Profit &amp; loss · @Ui.Date(report.From) to @Ui.Date(report.To) · @Model.CurrencyCode</div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="table report-table">
+                <thead>
+                <tr>
+                    <th>Account</th>
+                    <th class="num">@Ui.Date(report.From) – @Ui.Date(report.To)</th>
+                    @if (comparative is not null)
+                    {
+                        <th class="num">@Ui.Date(comparative.From) – @Ui.Date(comparative.To)</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var group in report.Sections)
+                {
+                    <tr class="is-section"><td colspan="@(comparative is null ? 2 : 3)">@group.Title</td></tr>
+                    @foreach (var row in group.Rows)
+                    {
+                        <tr>
+                            <td class="label-indent">
+                                <span class="muted mono" style="margin-right:8px">@row.Code</span>@row.Label
+                            </td>
+                            <td class="num">@Ui.Money(row.Amount, Model.CurrencyCode)</td>
+                            @if (comparative is not null)
+                            {
+                                var match = comparative.Sections
+                                    .FirstOrDefault(s => s.Key == group.Key)?.Rows
+                                    .FirstOrDefault(r => r.AccountId == row.AccountId);
+                                <td class="num">@Ui.Money(match?.Amount ?? 0m, Model.CurrencyCode)</td>
+                            }
+                        </tr>
+                    }
+                    <tr class="is-subtotal">
+                        <td>Total @group.Title.ToLowerInvariant()</td>
+                        <td class="num">@Ui.Money(group.Total, Model.CurrencyCode)</td>
+                        @if (comparative is not null)
+                        {
+                            <td class="num">@Ui.Money(comparative.Sections.FirstOrDefault(s => s.Key == group.Key)?.Total ?? 0m, Model.CurrencyCode)</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+                <tfoot>
+                <tr><td>Gross profit</td><td class="num">@Ui.Money(report.GrossProfit, Model.CurrencyCode)</td>
+                    @if (comparative is not null) { <td class="num">@Ui.Money(comparative.GrossProfit, Model.CurrencyCode)</td> }</tr>
+                <tr><td>Operating profit</td><td class="num">@Ui.Money(report.OperatingProfit, Model.CurrencyCode)</td>
+                    @if (comparative is not null) { <td class="num">@Ui.Money(comparative.OperatingProfit, Model.CurrencyCode)</td> }</tr>
+                <tr class="is-total"><td>Net profit</td><td class="num">@Ui.Money(report.NetProfit, Model.CurrencyCode)</td>
+                    @if (comparative is not null) { <td class="num">@Ui.Money(comparative.NetProfit, Model.CurrencyCode)</td> }</tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>

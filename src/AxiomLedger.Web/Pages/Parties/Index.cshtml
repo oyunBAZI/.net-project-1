@@ -1,0 +1,92 @@
+@page
+@model AxiomLedger.Web.Pages.Parties.IndexModel
+@{
+    ViewData["Title"] = Model.Type == PartyType.Vendor ? "Vendors" : "Customers";
+    var isVendor = Model.Type == PartyType.Vendor;
+}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">@(isVendor ? "Purchases" : "Sales")</div>
+        <h1>@(isVendor ? "Vendors" : "Customers")</h1>
+        <div class="sub">@(isVendor ? "Suppliers you buy from, with payable balances." : "Customers you invoice, with receivable balances.")</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.ManageParties))
+        {
+            <a class="btn btn-primary" asp-page="/Parties/Edit" asp-route-type="@Model.Type">New @(isVendor ? "vendor" : "customer")</a>
+        }
+    </div>
+</div>
+
+<div class="tabs">
+    <a class="tab @(!isVendor ? "is-active" : "")" asp-page="/Parties/Index" asp-route-type="Customer">Customers</a>
+    <a class="tab @(isVendor ? "is-active" : "")" asp-page="/Parties/Index" asp-route-type="Vendor">Vendors</a>
+    <a class="tab" asp-page="/Parties/Index" asp-route-type="Both">All parties</a>
+</div>
+
+<form method="get" class="filter-bar">
+    <input type="hidden" name="type" value="@Model.Type"/>
+    <div class="field grow">
+        <label>Search</label>
+        <input class="input" name="Search" value="@Model.Search" placeholder="Name, code or email"/>
+    </div>
+    <label class="check" style="margin-bottom:9px">
+        <input type="checkbox" name="IncludeInactive" value="true" checked="@Model.IncludeInactive"/> Include inactive
+    </label>
+    <button class="btn btn-ghost" type="submit">Apply</button>
+</form>
+
+<div class="card">
+    <div class="card-head"><h2>@Model.Parties.Count part@(Model.Parties.Count == 1 ? "y" : "ies")</h2></div>
+    <div class="card-body tight">
+        @if (Model.Parties.Count == 0)
+        {
+            <div class="empty">
+                <h3>No @(isVendor ? "vendors" : "customers") yet</h3>
+                <p>Add one to start invoicing@(isVendor ? " and recording bills" : "").</p>
+                @if (Model.Can(Permission.ManageParties))
+                {
+                    <a class="btn btn-primary" asp-page="/Parties/Edit" asp-route-type="@Model.Type">Add @(isVendor ? "vendor" : "customer")</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Code</th><th>Name</th><th>Contact</th><th>Type</th><th>Currency</th>
+                        <th class="num">Receivable</th><th class="num">Payable</th><th>Status</th><th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var party in Model.Parties)
+                    {
+                        <tr>
+                            <td class="muted mono">@party.Code</td>
+                            <td><a class="row-link" asp-page="/Parties/View" asp-route-id="@party.Id">@party.Name</a></td>
+                            <td class="muted">@(party.Email ?? "—")</td>
+                            <td><span class="tag">@party.Type</span></td>
+                            <td class="muted">@party.CurrencyCode</td>
+                            <td class="num">@(party.Receivable != 0 ? Ui.Money(party.Receivable) : "—")</td>
+                            <td class="num">@(party.Payable != 0 ? Ui.Money(party.Payable) : "—")</td>
+                            <td>
+                                @if (party.IsActive)
+                                {
+                                    <span class="badge badge-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-muted">Inactive</span>
+                                }
+                            </td>
+                            <td class="text-right"><a class="btn-link" asp-page="/Parties/View" asp-route-id="@party.Id">Open</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

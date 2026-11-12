@@ -1,0 +1,66 @@
+@page
+@model AxiomLedger.Web.Pages.Banking.AccountModel
+@{
+    ViewData["Title"] = "New bank account";
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Banking/Index">Banking</a> / New account</div>
+        <h1>Add a bank account</h1>
+        <div class="sub">Link each bank account to a cash/bank ledger account so payments and imports reconcile.</div>
+    </div>
+</div>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+    <div class="card" style="max-width:820px">
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="field">
+                    <label>Account name</label>
+                    <input class="input" asp-for="Input.Name" required placeholder="Operating Account"/>
+                </div>
+                <div class="field">
+                    <label>Bank</label>
+                    <input class="input" asp-for="Input.BankName"/>
+                </div>
+                <div class="field">
+                    <label>Account number</label>
+                    <input class="input" asp-for="Input.AccountNumber"/>
+                </div>
+                <div class="field">
+                    <label>IBAN</label>
+                    <input class="input" asp-for="Input.Iban"/>
+                </div>
+                <div class="field">
+                    <label>SWIFT / BIC</label>
+                    <input class="input" asp-for="Input.Swift"/>
+                </div>
+                <div class="field">
+                    <label>Currency</label>
+                    <input class="input" asp-for="Input.CurrencyCode" maxlength="3"/>
+                </div>
+                <div class="field span-2">
+                    <label>Ledger account</label>
+                    <select class="select" asp-for="Input.AccountId">
+                        <option value="">Create a new asset account</option>
+                        @foreach (var account in Model.AssetAccounts)
+                        {
+                            <option value="@account.Id">@account.Display</option>
+                        }
+                    </select>
+                    <span class="hint">Leave blank to create “&lt;name&gt; (bank)” as a new asset account.</span>
+                </div>
+                <div class="field">
+                    <label class="check"><input asp-for="Input.CreateLedgerAccount"/> <span>Create the ledger account</span></label>
+                </div>
+            </div>
+        </div>
+        <div class="card-foot">
+            <div class="btn-row">
+                <button class="btn btn-primary" type="submit">Create bank account</button>
+                <a class="btn btn-ghost" asp-page="/Banking/Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>

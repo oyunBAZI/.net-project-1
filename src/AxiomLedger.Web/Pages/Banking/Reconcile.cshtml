@@ -1,0 +1,101 @@
+@page "{bankId:guid}"
+@model AxiomLedger.Web.Pages.Banking.ReconcileModel
+@{
+    ViewData["Title"] = "Reconcile";
+    var summary = Model.Summary;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Banking/Index">Banking</a> / Reconcile</div>
+        <h1>Reconcile @summary.BankAccountName</h1>
+        <div class="sub">@Ui.Date(summary.PeriodStart) – @Ui.Date(summary.PeriodEnd)</div>
+    </div>
+    <div class="page-actions">
+        @if (Model.Can(Permission.ManageBanking) && summary.IsBalanced)
+        {
+            <form method="post" asp-page-handler="Complete"
+                  data-confirm="Complete this reconciliation and lock the period?">
+                <input type="hidden" name="bankId" value="@summary.BankAccountId"/>
+                <input type="hidden" name="from" value="@Ui.DateInput(summary.PeriodStart)"/>
+                <input type="hidden" name="to" value="@Ui.DateInput(summary.PeriodEnd)"/>
+                <button class="btn btn-primary" type="submit">Complete reconciliation</button>
+            </form>
+        }
+        <a class="btn btn-ghost" asp-page="/Banking/Index" asp-route-bankId="@summary.BankAccountId">Back</a>
+    </div>
+</div>
+
+<div asp-validation-summary="All" class="validation-summary"></div>
+
+<form method="get" class="filter-bar">
+    <input type="hidden" name="bankId" value="@summary.BankAccountId"/>
+    <div class="field">
+        <label>From</label>
+        <input class="input" type="date" name="from" value="@Ui.DateInput(summary.PeriodStart)"/>
+    </div>
+    <div class="field">
+        <label>To</label>
+        <input class="input" type="date" name="to" value="@Ui.DateInput(summary.PeriodEnd)"/>
+    </div>
+    <button class="btn btn-ghost" type="submit">Recalculate</button>
+</form>
+
+<div class="stat-grid">
+    <div class="stat">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Statement balance</div>
+        <div class="stat-value">@Ui.Money(summary.StatementBalance, Model.CurrencyCode)</div>
+    </div>
+    <div class="stat is-blue">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Ledger balance</div>
+        <div class="stat-value">@Ui.Money(summary.LedgerBalance, Model.CurrencyCode)</div>
+    </div>
+    <div class="stat is-warn">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Outstanding checks</div>
+        <div class="stat-value">@Ui.Money(summary.OutstandingChecks, Model.CurrencyCode)</div>
+    </div>
+    <div class="stat @(summary.IsBalanced ? "" : "is-danger")">
+        <span class="stat-accent"></span>
+        <div class="stat-label">Difference</div>
+        <div class="stat-value">@Ui.Money(summary.Difference, Model.CurrencyCode)</div>
+        <div class="stat-meta">@(summary.IsBalanced ? "Fully reconciled" : "Needs investigation")</div>
+    </div>
+</div>
+
+@if (!summary.IsBalanced)
+{
+    <div class="alert alert-warn mb-2">
+        The statement and ledger do not agree yet. Match the outstanding items above, or investigate the
+        unreconciled difference of @Ui.Money(summary.Difference, Model.CurrencyCode).
+    </div>
+}
+
+<div class="card">
+    <div class="card-head">
+        <h2>Statement lines</h2>
+        <span class="muted">@summary.UnmatchedLines unmatched</span>
+    </div>
+    <div class="card-body tight">
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                <tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Status</th><th>Matched with</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var line in summary.Lines)
+                {
+                    <tr>
+                        <td class="nowrap muted">@Ui.Date(line.Date)</td>
+                        <td>@(line.Description ?? "—")</td>
+                        <td class="num @(line.Amount < 0 ? "negative" : "positive")">@Ui.Money(line.Amount, Model.CurrencyCode)</td>
+                        <td><span class="badge @(line.Status == BankLineStatus.Matched ? "badge-success" : line.Status == BankLineStatus.Excluded ? "badge-muted" : "badge-warning")">@line.Status</span></td>
+                        <td class="muted">@(line.MatchedWith ?? "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

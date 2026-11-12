@@ -1,0 +1,200 @@
+@page "{id:guid}"
+@model AxiomLedger.Web.Pages.Journal.ViewModel
+@{
+    ViewData["Title"] = Model.Entry.Number;
+    var entry = Model.Entry;
+    var currency = Model.CurrencyCode;
+}
+<div class="page-head">
+    <div>
+        <div class="breadcrumb"><a asp-page="/Journal/Index">Journal</a> / @entry.Number</div>
+        <h1 class="flex" style="gap:10px">
+            @entry.Number
+            <span class="badge @Ui.Status(entry.Status)">@entry.Status</span>
+        </h1>
+        <div class="sub">@entry.Memo</div>
+    </div>
+    <div class="page-actions">
+        @if (entry.IsEditable && Model.Can(Permission.CreateJournal))
+        {
+            <a class="btn btn-ghost" asp-page="/Journal/Edit" asp-route-id="@entry.Id">Edit draft</a>
+        }
+        @if (entry.Status == JournalStatus.Draft && Model.Can(Permission.PostJournal))
+        {
+            <form method="post" asp-page-handler="Post" data-confirm="Post this entry to the ledger?">
+                <button class="btn btn-primary" type="submit">Post entry</button>
+            </form>
+        }
+        @if (entry.Status == JournalStatus.Draft && Model.Can(Permission.CreateJournal))
+        {
+            <form method="post" asp-page-handler="Submit">
+                <button class="btn btn-secondary" type="submit">Submit for approval</button>
+            </form>
+        }
+        @if (entry.Status == JournalStatus.PendingApproval && Model.Can(Permission.ApproveJournal))
+        {
+            <form method="post" asp-page-handler="Approve" data-confirm="Approve and post this entry?">
+                <button class="btn btn-primary" type="submit">Approve &amp; post</button>
+            </form>
+        }
+        @if (entry.Status == JournalStatus.Posted && Model.Can(Permission.PostJournal))
+        {
+            <button class="btn btn-ghost" type="button" data-open-reverse>Reverse</button>
+        }
+        @if (entry.Status == JournalStatus.Draft && Model.Can(Permission.CreateJournal))
+        {
+            <form method="post" asp-page-handler="Delete" data-confirm="Delete this draft permanently?">
+                <button class="btn btn-danger" type="submit">Delete</button>
+            </form>
+        }
+        <a class="btn btn-ghost" asp-page="/Journal/Index">Back</a>
+    </div>
+</div>
+
+<div asp-validation-summary="All" class="validation-summary"></div>
+
+@if (entry.Status == JournalStatus.Reversed && Model.Reversal is not null)
+{
+    <div class="alert alert-warn mb-2">
+        This entry was reversed by
+        <a asp-page="/Journal/View" asp-route-id="@Model.Reversal.Id">@Model.Reversal.Number</a>
+        on @Ui.Date(Model.Reversal.EntryDate).
+    </div>
+}
+@if (entry.ReversalOfId is { } originalId)
+{
+    <div class="alert alert-info mb-2">
+        This is a reversing entry for <a asp-page="/Journal/View" asp-route-id="@originalId">the original journal</a>.
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(entry.ApprovalNote))
+{
+    <div class="alert mb-2"><strong>Approval note:</strong> @entry.ApprovalNote</div>
+}
+
+<div class="split">
+    <div class="stack">
+        <div class="card">
+            <div class="card-head">
+                <h2>Lines</h2>
+                <span class="muted">@entry.Lines.Count lines</span>
+            </div>
+            <div class="card-body tight">
+                <div class="table-wrap">
+                    <table class="table compact">
+                        <thead>
+                        <tr>
+                            <th>#</th><th>Account</th><th>Description</th><th>Party</th><th>Dept.</th>
+                            <th class="num">Debit</th><th class="num">Credit</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var line in entry.Lines.OrderBy(l => l.LineNumber))
+                        {
+                            <tr>
+                                <td class="muted">@line.LineNumber</td>
+                                <td class="nowrap"><strong>@line.Account?.Code</strong> · @line.Account?.Name</td>
+                                <td>@line.Description</td>
+                                <td class="muted">@Model.PartyName(line.PartyId)</td>
+                                <td class="muted">@Model.DepartmentName(line.DepartmentId)</td>
+                                <td class="num">@(line.Debit != 0 ? Ui.Money(line.Debit, currency) : "")</td>
+                                <td class="num">@(line.Credit != 0 ? Ui.Money(line.Credit, currency) : "")</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <td colspan="5">Totals</td>
+                            <td class="num">@Ui.Money(entry.TotalDebit, currency)</td>
+                            <td class="num">@Ui.Money(entry.TotalCredit, currency)</td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Can(Permission.PostJournal) && entry.Status == JournalStatus.Posted)
+        {
+            <div class="card" id="reverse-card" style="display:none">
+                <div class="card-head"><h2>Reverse this entry</h2></div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Reverse">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label>Reversal date</label>
+                                <input class="input" type="date" name="reversalDate" value="@Ui.DateInput(Model.Today)"/>
+                            </div>
+                            <div class="field">
+                                <label>Reason</label>
+                                <input class="input" name="memo" placeholder="Why is this being reversed?"/>
+                            </div>
+                        </div>
+                        <p class="help mt-2">The ledger is immutable: the original entry stays visible and a
+                            mirrored entry is posted on the chosen date.</p>
+                        <div class="form-actions">
+                            <button class="btn btn-danger" type="submit">Post reversal</button>
+                            <button class="btn btn-ghost" type="button" data-close-reverse>Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div>
+        <div class="card side-card">
+            <div class="card-head"><h2>Details</h2></div>
+            <div class="card-body">
+                <dl class="kv">
+                    <dt>Entry date</dt><dd>@Ui.Date(entry.EntryDate)</dd>
+                    <dt>Source</dt><dd>@Ui.Source(entry.Source)</dd>
+                    <dt>Reference</dt><dd>@(entry.Reference ?? "—")</dd>
+                    <dt>Currency</dt><dd>@currency</dd>
+                    <dt>Total</dt><dd>@Ui.Money(entry.TotalDebit, currency)</dd>
+                    <dt>Created</dt><dd>@entry.CreatedAt.ToString("dd MMM yyyy HH:mm")</dd>
+                    <dt>Posted</dt><dd>@(entry.PostedAt?.ToString("dd MMM yyyy HH:mm") ?? "—")</dd>
+                    <dt>Approved</dt><dd>@(entry.ApprovedAt?.ToString("dd MMM yyyy HH:mm") ?? "—")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card side-card">
+            <div class="card-head"><h2>Control</h2></div>
+            <div class="card-body">
+                <p class="help">Posted entries are immutable. Corrections are made with a reversing entry, keeping
+                    the audit trail intact. Period locks and the company lock date can prevent posting into
+                    closed books.</p>
+                @if (entry.Status == JournalStatus.PendingApproval && Model.Can(Permission.ApproveJournal))
+                {
+                    <hr/>
+                    <form method="post" asp-page-handler="Reject">
+                        <div class="field">
+                            <label>Rejection reason</label>
+                            <input class="input" name="reason" placeholder="What needs to change?"/>
+                        </div>
+                        <div class="form-actions" style="margin-top:12px">
+                            <button class="btn btn-ghost" type="submit">Send back to draft</button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var card = document.getElementById("reverse-card");
+            document.querySelectorAll("[data-open-reverse]").forEach(function (b) {
+                b.addEventListener("click", function () {
+                    if (card) { card.style.display = ""; card.scrollIntoView({ behavior: "smooth" }); }
+                });
+            });
+            document.querySelectorAll("[data-close-reverse]").forEach(function (b) {
+                b.addEventListener("click", function () { if (card) card.style.display = "none"; });
+            });
+        })();
+    </script>
+}
